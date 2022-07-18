@@ -1,5 +1,7 @@
 import pandas as pd
 import requests
+import os
+import re
 import time
 import json
 from datetime import datetime
@@ -13,9 +15,25 @@ auth_headers = {
 }
 
 
+class MismatchError(Exception):
+    """ 
+        Exception raised when two values are not the same
+        Particularly useful when auditing the length of something
+    """
+    def __init__(self, lhs, rhs, message='Two values do not match. Try resetting and starting again'):
+        self.lhs = lhs
+        self.rhs = rhs
+        self.message='Two values do not match (LHS: {}   RHS: {})'.format(lhs, rhs)
+        super().__init__(self.message)
+
+
+
 ### GLOBAL VARS OF INTEREST
 capitalisnt_podcast_id = '912f8fce-96d2-4583-92f5-2279c08e377a'
 today = datetime.now()
+files_in_dir = os.listdir()
+
+
 
 
 
@@ -36,17 +54,23 @@ def getAllEpisodes(current_datetime):
     }
     url = 'https://api.simplecast.com/analytics/episodes'
 
-    ### TODO: change this out with a regex interpretation of a .csv OR 
-    last_collected_datetime = datetime.strptime('2022-06-14', '%Y-%m-%d')
-    #####
-    time_since_collection = current_datetime - last_collected_datetime
-    
+    for filename in files_in_dir:
+        if re.search(r'^episodes_core', filename):
+            last_collected_datetime_string = re.search(r'\d{4}-\d{2}-\d{2}', filename)[0]
+            last_collected_datetime = datetime.strptime(last_collected_datetime_string, '%Y-%m-%d')
+ 
+    try:
+       time_since_collection = current_datetime - last_collected_datetime
+    except:
+        time_since_collection = current_datetime - datetime.strptime('2000-01-01', '%Y-%m-%d')
+
     eps_response = requests.get(url, headers=auth_headers, params=get_eps_params)
     r = eps_response.json()
 
     eps_collection = r.get('collection')
     episodes_list = eps_collection
 
+    expected_episodes = r.get('count')
     pages_dict = r.get('pages')
     expected_pages = pages_dict.get('total')
     current_page = pages_dict.get('current')
@@ -71,11 +95,14 @@ def getAllEpisodes(current_datetime):
         df = pd.concat([old_df, new_df])
         df = df.drop_duplicates()
 
+        if len(df) != expected_episodes:
+            raise MismatchError(len(df), expected_episodes)
+
         return df
     else:
 
         ### TODO:  CHANGE THIS TO 'expected_pages' WHEN WE ARE READY TO GO
-        while current_page < 3:
+        while current_page < expected_pages:
             now_current_collection, current_page, next_page_url = getNext(next_page_url)
             print('Just collected {}; about to collect {} out of {} pages'.format(current_page -1, current_page, expected_pages))
 
@@ -92,8 +119,14 @@ def getAllEpisodes(current_datetime):
         }, inplace=True)
         df.drop(columns=['season', 'number', 'downloads'], inplace=True)
 
+        episodes_core_out_path = 'episodes_core-{}.csv'.format(datetime.strftime(current_datetime), '%Y-%m-%d')
+        if len(df) != expected_episodes:
+            raise MismatchError(len(df), expected_episodes)
+        df.to_csv(episodes_core_out_path, index=False, encoding='utf-8')
+
         return df
 
 
-x = getAllEpisodes()
+x = getAllEpisodes(today)
+
 x

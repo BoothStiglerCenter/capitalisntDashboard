@@ -2,3 +2,7 @@
 ### MUST IGNORE API KEYS ###
 
 env_keys.json
+
+
+### Ignore all .csv files for the time being
+**/*.csv
