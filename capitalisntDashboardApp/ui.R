@@ -26,11 +26,14 @@ shinyUI(fluidPage(
     tabsetPanel(
         tabPanel(
             title='About',
-            includeMarkdown('about_panel.md')
-            # tags$h1(getwd())
+            includeMarkdown('about_panel.md'),
+            tags$h1(getwd())
         ),
         tabPanel(
-            title='Downloads'
+            title='Downloads',
+            plotOutput(
+                "downloadsPlot"
+            )
         ),
         tabPanel(
             title='Platforms',

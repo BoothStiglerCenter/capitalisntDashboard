@@ -37,6 +37,7 @@ class MismatchError(Exception):
 ### Identifies whether a certain type of .csv has already been collected (ie is in this folder somewhere)
 def identifyExistingCollection(current_datetime, type_csv_search_pattern):
 
+    print('Trying to identify previous collection exists for: {}'.format(type_csv_search_pattern))
     # Establishes patterns so that this function is generalizable to lots of types of .csvs
     patterns_dict = {
         'episodes_core' : r'^episodes_core',
@@ -105,10 +106,11 @@ def getAllEpisodes(current_datetime):
     current_page = pages_dict.get('current')
     next_page_url = pages_dict.get('next').get('href')
 
-    print('Expected # of episode pages: {}'.format(expected_pages))
+    
 
     # If we have collected within the past 50 days, only call the API once to get the most recent episode IDs. Otherwise, we can't really count on how many observations we have so collect every observation that you can get out of this API endpoint 'analytics/episodes'
     if time_since_collection.days < 50:
+        print('Last episodes_core collection was within 50 days. Calling limited API')
 
         new_df = pd.DataFrame.from_dict(episodes_list)
         new_df['season'] = new_df['season'].apply(lambda obj: obj.get('number'))
@@ -130,6 +132,8 @@ def getAllEpisodes(current_datetime):
     
     else:
         # The API only returns 5 episodes at a time so we need to keep calling until we get all 'expected_pages' pages. 
+        print('Last episodes_core collection was more than 50 days ago. Collecting all.')
+        print('Expected # of episode pages: {}'.format(expected_pages))
         while current_page < expected_pages:
             now_current_collection, current_page, next_page_url = getNext(next_page_url)
             print('Just collected {}; about to collect {} out of {} pages'.format(current_page -1, current_page, expected_pages))
@@ -166,6 +170,7 @@ def getEpDownloads(current_datetime):
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
 
     if type(eps_df) == str:
+        print('Could not find a episodes_core .csv. Trying to redownload those.')
         eps_df = getAllEpisodes(current_datetime, last_collected_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
     
@@ -174,18 +179,20 @@ def getEpDownloads(current_datetime):
 
     # If we've never collected episode downloads before, we got a string back from identifyExistingCollection() and we nee to initialize a df before downloading everything.
     if type(eps_downloads_df) == str:
+        print('Could not find a episodes_downloads .csv. Going to begin downloading all')
         eps_downloads_df = pd.DataFrame()
     
     # If we have collected episode downloads before we only want to download new dates (we pass this this to the API)
     if default_date < downloads_last_collected_datetime:
-        get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()
+        print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.')
+        get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
 
-    eps_df = eps_df.head(5)
     for i, obs in eps_df.iterrows():
 
         episode_downloads_url = obs.episode_download_href
         episode_id = obs.episode_id
         episode_title = obs.title
+        print(episode_title)
 
         response = requests.get(episode_downloads_url,
             headers = auth_headers,
@@ -200,6 +207,8 @@ def getEpDownloads(current_datetime):
 
     eps_downloads_df = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
     print('trying to get new eps downloads')
+
+    eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), encoding='utf-8')
 
 
 
