@@ -1,10 +1,12 @@
 import pandas as pd
+import numpy as np
 import requests
+import functools
 import os
 import re
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 ### READ IN API KEY
@@ -34,6 +36,7 @@ class MismatchError(Exception):
         super().__init__(self.message)
 
 
+
 ### Identifies whether a certain type of .csv has already been collected (ie is in this folder somewhere)
 def identifyExistingCollection(current_datetime, type_csv_search_pattern):
 
@@ -43,6 +46,7 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'episodes_core' : r'^episodes_core',
         'episodes_downloads' : r'^episodes_downloads',
         'keywords' : r'^episodes_keywords',
+        'listening_methods' : r'^listening_methods'
     }
 
     
@@ -168,9 +172,9 @@ def getEpDownloads(current_datetime):
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
 
     if type(eps_df) == str:
-        print('Could not find a episodes_core .csv. Trying to redownload those.')
+        print('Could not find a episodes_core .csv. Trying to re-download those.')
         eps_df = getAllEpisodes(current_datetime)
-    elif eps_df < current_datetime:
+    elif last_collected_datetime < current_datetime:
         print('The episodes_core .csv may be out of date. Calling that API again.')
         eps_df = getAllEpisodes(current_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
@@ -216,27 +220,27 @@ def getKeyWords(current_datetime):
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
 
     if type(eps_df) == str:
-        print('Could not find a episodes_core.csv. Trying to redownload those')
+        print('Could not find a episodes_core.csv. Trying to re-download those')
         eps_df = getAllEpisodes(current_datetime)
     elif last_collected_datetime < current_datetime:
         print('The episodes_core .csv may be out of date. Calling that API again')
         eps_df = getAllEpisodes(current_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
 
+    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
     keywords_df, keywords_last_collected_datetime = identifyExistingCollection(current_datetime, 'keywords')
     
     if type(keywords_df) == str:
         print('Could not find a keywords .csv. Going to begin downloading all')
         keywords_df = pd.DataFrame()
-        keywords_df['episode_id'] = None
+        keywords_to_collect_episode_id_set = all_eps_episode_id_set
     
     if default_date < keywords_last_collected_datetime: 
-        print('Found an old keywords .csv dated to {}. Only calling API for more recent download_data'.format(keywords_last_collected_datetime))
+        print('Found an old keywords .csv dated to {}. Only calling API for more recent keywords'.format(keywords_last_collected_datetime))
+        existing_keywords_episode_id_set = set(keywords_df['episode_id'].unique().tolist())
+        keywords_to_collect_episode_id_set = all_eps_episode_id_set - existing_keywords_episode_id_set
 
-    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
-    existing_keywords_episode_id_set = set(keywords_df['episode_id'].unique().tolist())
 
-    keywords_to_collect_episode_id_set = all_eps_episode_id_set - existing_keywords_episode_id_set
 
     for episode_id in keywords_to_collect_episode_id_set:
         url = 'https://api.simplecast.com/episodes/{}/keywords'.format(episode_id)
@@ -253,6 +257,78 @@ def getKeyWords(current_datetime):
     keywords_df.to_csv('episodes_keywords-{}.csv'.format(today), encoding='utf-8')
     return keywords_df
 
+def getListeningMethods(current_datetime):
+    get_listening_methods_params = {
+        'podcast' : capitalisnt_podcast_id
+    }
+
+    eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
+
+    if type(eps_df) == str:
+        print('Count not find a episodes_core.csv. Trying to re-download those')
+        eps_df = getAllEpisodes(current_datetime)
+    elif last_collected_datetime < current_datetime:
+        print('The episodes_core .csv may be out of date. Calling that API again')
+        eps_df = getAllEpisodes(current_datetime)
+    eps_df = eps_df[['episode_download_href', 'title', 'title', 'episode_id', 'season-ep']]
+
+    listening_methods_df, listening_methods_last_collected_datetime = identifyExistingCollection(current_datetime, 'listening_methods')
+    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
+    
+    if type(listening_methods_df) == str:
+        print('Could not find a listening methods .csv. Going to begin downloading all')
+        listening_methods_df = pd.DataFrame()
+        eps_to_collet_id_set = all_eps_episode_id_set
+    if default_date < listening_methods_last_collected_datetime:
+        print('Found an old listening methods .csv dated to {}. Only calling API for more recent listening methods')
+        subsetting_eps_ids = eps_df[['episode_id', 'published_at']]
+        subsetting_eps_ids['published_at'] = subsetting_eps_ids['published_at'].apply(lambda x: datetime.fromisoformat(x))
+        subsetting_eps_ids['time_since_release'] = subsetting_eps_ids['published_at'].apply(lambda x: current_datetime - x)
+        subsetting_eps_ids['time_since_last_collection'] = subsetting_eps_ids['published_at'].apply(lambda x: listening_methods_last_collected_datetime - x)
+
+        subsetting_eps_ids['collection_binary'] = subsetting_eps_ids[['time_since_release', 'time_since_last_collection']].apply(
+            lambda x: 1 if x.time_since_release < timedelta(31) else (1 if timedelta(31) <= x.time_since_release < timedelta(186) and timedelta(7) < x.time_since_last_collection else (1 if timedelta(186) <= x.time_since_release and timedelta(31) < x.time_since_last_collection else 0)), axis=1
+        )
+        subsetting_eps_ids['collection_binary'] = subsetting_eps_ids['time_since_last_collection'].apply(lambda x: 1 if timedelta(0) < x.time_since_last_collection else 0)
+        subsetting_eps_ids = subsetting_eps_ids[subsetting_eps_ids['collection_binary']==1]
+        eps_to_collet_id_set = set(subsetting_eps_ids['episode_id'].unique().tolist())
+
+
+    ### We are always going to download podcast-level listening methods
+    ### We are only occasionally going to download episode-level listening methods
+    ### If the episode was released within the last month, download it 
+    ### If the episode was released between one month and 6 months ago AND we haven't collected it within the last week. download it
+    ### If the episode was released more than 6 months ago AND we haven't downloaded it within the last month. download it
+
+    response = requests.get(url='https://api.simplecast.com/analytics/technology/listening_methods',
+        headers=auth_headers,
+        params=get_listening_methods_params)
+    listening_methods = response.json().get('collection')
+    podcast_listening_methods_df = pd.DataFrame.from_dict(listening_methods)
+    podcast_listening_methods_df.to_csv('podcast_listening_methods-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+    
+    get_listening_methods_params.pop('podcast')
+    for episode_id in eps_to_collet_id_set:
+        url = 'https://api.simplecast.com/analytics/technology/listening_methods'
+        get_listening_methods_params['episode'] = episode_id
+        
+
+        response = requests.get(url,
+            headers=auth_headers,
+            params=get_listening_methods_params)
+
+        listening_methods = response.json().get('collection')
+        episode_listening_methods_df = pd.DataFrame.from_dict(listening_methods)
+        episode_listening_methods_df['date_collected'] = current_datetime
+        episode_listening_methods_df['episode_id'] = episode_id
+
+        listening_methods_df = pd.concat([listening_methods_df, episode_listening_methods_df], ignore_index=True)
+
+    listening_methods_df.to_csv('listening_methods-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+    ###
+
+    return listening_methods_df
 
 # getEpDownloads(today)
-getKeyWords(today)
+# getKeyWords(today)
+getListeningMethods(today)
