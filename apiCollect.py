@@ -7,7 +7,7 @@ import re
 import time
 import json
 from datetime import datetime, timedelta
-
+from tqdm import tqdm
 
 ### READ IN API KEY
 api_keys_dict = json.load(open('env_keys.json'))
@@ -46,9 +46,10 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'episodes_core' : r'^episodes_core',
         'episodes_downloads' : r'^episodes_downloads',
         'keywords' : r'^episodes_keywords',
-        'listening_methods' : r'^listening_methods'
+        'listening_methods' : r'^listening_methods',
+        'geolocation' : r'^locations'
     }
-
+ 
     
     pattern = patterns_dict.get(type_csv_search_pattern)
     # Sets the default last-collected date. If no files match the desired pattern, this is the date that's returned.
@@ -163,7 +164,6 @@ def getAllEpisodes(current_datetime):
 
         return df
 
-
 def getEpDownloads(current_datetime):
     get_downloads_params = {
         'interval' : 'day',
@@ -191,12 +191,11 @@ def getEpDownloads(current_datetime):
         print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.'.format(downloads_last_collected_datetime))
         get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
 
-    for i, obs in eps_df.iterrows():
+    for i, obs in tqdm(eps_df.iterrows(), desc="Episode-level downloads: "):
 
         episode_downloads_url = obs.episode_download_href
         episode_id = obs.episode_id
         episode_title = obs.title
-        print(episode_title)
 
         response = requests.get(episode_downloads_url,
             headers = auth_headers,
@@ -242,7 +241,7 @@ def getKeyWords(current_datetime):
 
 
 
-    for episode_id in keywords_to_collect_episode_id_set:
+    for episode_id in tqdm(keywords_to_collect_episode_id_set, desc="Keywords: "):
         url = 'https://api.simplecast.com/episodes/{}/keywords'.format(episode_id)
 
         response = requests.get(url, headers=auth_headers)
@@ -270,7 +269,7 @@ def getListeningMethods(current_datetime):
     elif last_collected_datetime < current_datetime:
         print('The episodes_core .csv may be out of date. Calling that API again')
         eps_df = getAllEpisodes(current_datetime)
-    eps_df = eps_df[['episode_download_href', 'title', 'title', 'episode_id', 'season-ep']]
+    eps_df = eps_df[['episode_download_href', 'title', 'published_at', 'episode_id', 'season-ep']]
 
     listening_methods_df, listening_methods_last_collected_datetime = identifyExistingCollection(current_datetime, 'listening_methods')
     all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
@@ -278,20 +277,20 @@ def getListeningMethods(current_datetime):
     if type(listening_methods_df) == str:
         print('Could not find a listening methods .csv. Going to begin downloading all')
         listening_methods_df = pd.DataFrame()
-        eps_to_collet_id_set = all_eps_episode_id_set
+        eps_to_collect_id_set = all_eps_episode_id_set
     if default_date < listening_methods_last_collected_datetime:
         print('Found an old listening methods .csv dated to {}. Only calling API for more recent listening methods')
         subsetting_eps_ids = eps_df[['episode_id', 'published_at']]
-        subsetting_eps_ids['published_at'] = subsetting_eps_ids['published_at'].apply(lambda x: datetime.fromisoformat(x))
-        subsetting_eps_ids['time_since_release'] = subsetting_eps_ids['published_at'].apply(lambda x: current_datetime - x)
-        subsetting_eps_ids['time_since_last_collection'] = subsetting_eps_ids['published_at'].apply(lambda x: listening_methods_last_collected_datetime - x)
+        subsetting_eps_ids.loc[:,'published_at'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: datetime.fromisoformat(x))
+        subsetting_eps_ids.loc[:,'time_since_release'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: current_datetime - x)
+        subsetting_eps_ids.loc[:,'time_since_last_collection'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: listening_methods_last_collected_datetime - x)
 
-        subsetting_eps_ids['collection_binary'] = subsetting_eps_ids[['time_since_release', 'time_since_last_collection']].apply(
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,['time_since_release', 'time_since_last_collection']].apply(
             lambda x: 1 if x.time_since_release < timedelta(31) else (1 if timedelta(31) <= x.time_since_release < timedelta(186) and timedelta(7) < x.time_since_last_collection else (1 if timedelta(186) <= x.time_since_release and timedelta(31) < x.time_since_last_collection else 0)), axis=1
         )
-        subsetting_eps_ids['collection_binary'] = subsetting_eps_ids['time_since_last_collection'].apply(lambda x: 1 if timedelta(0) < x.time_since_last_collection else 0)
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,'time_since_last_collection'].apply(lambda x: 1 if timedelta(0) > x else 0)
         subsetting_eps_ids = subsetting_eps_ids[subsetting_eps_ids['collection_binary']==1]
-        eps_to_collet_id_set = set(subsetting_eps_ids['episode_id'].unique().tolist())
+        eps_to_collect_id_set = set(subsetting_eps_ids['episode_id'].unique().tolist())
 
 
     ### We are always going to download podcast-level listening methods
@@ -300,6 +299,7 @@ def getListeningMethods(current_datetime):
     ### If the episode was released between one month and 6 months ago AND we haven't collected it within the last week. download it
     ### If the episode was released more than 6 months ago AND we haven't downloaded it within the last month. download it
 
+    # Podcast-level listening methods df collection
     response = requests.get(url='https://api.simplecast.com/analytics/technology/listening_methods',
         headers=auth_headers,
         params=get_listening_methods_params)
@@ -308,7 +308,8 @@ def getListeningMethods(current_datetime):
     podcast_listening_methods_df.to_csv('podcast_listening_methods-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
     
     get_listening_methods_params.pop('podcast')
-    for episode_id in eps_to_collet_id_set:
+    #Episode-level listening methods df collection
+    for episode_id in tqdm(eps_to_collect_id_set, desc="Episode-level Listening Methods: "):
         url = 'https://api.simplecast.com/analytics/technology/listening_methods'
         get_listening_methods_params['episode'] = episode_id
         
@@ -329,6 +330,83 @@ def getListeningMethods(current_datetime):
 
     return listening_methods_df
 
+def getGeoLocations(current_datetime):
+    get_locations_params = {
+        'podcast' : capitalisnt_podcast_id
+    }
+
+
+    eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
+
+    if type(eps_df) == str:
+        print('Could not find a episodes_core.csv. Trying to re-download those')
+        eps_df = getAllEpisodes(current_datetime)
+    elif last_collected_datetime < current_datetime:
+        print('The episodes_core .csv may be out of date. calling that API again.')
+        eps_df = getAllEpisodes(current_datetime)
+    
+    eps_df = eps_df[['episode_download_href', 'title', 'published_at', 'episode_id', 'season-ep']]
+    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
+
+    locations_df, locations_last_collected_datetime = identifyExistingCollection(current_datetime, 'geolocation')
+
+    if type(locations_df) == str:
+        print('Could not find a locations .csv. going to begin downloading all')
+        locations_df = pd.DataFrame()
+        eps_to_collect_id_set = all_eps_episode_id_set
+    if default_date < locations_last_collected_datetime:
+        print('Found an old locations .csv dated to {}. Only calling API for more recent location data'.format(locations_last_collected_datetime))
+        subsetting_eps_ids = eps_df[['episode_id', 'published_at']]
+        subsetting_eps_ids.loc[:,'published_at'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: datetime.fromisoformat(x).date())
+        subsetting_eps_ids.loc[:,'time_since_release'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: current_datetime - x)
+        subsetting_eps_ids.loc[:,'time_since_last_collection'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: locations_last_collected_datetime - x)
+
+        print(5)
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,['time_since_release', 'time_since_last_collection']].apply(
+            lambda x: 1 if x.time_since_release < timedelta(31) else (1 if timedelta(31) <= x.time_since_release < timedelta(186) and timedelta(7) < x.time_since_last_collection else (1 if timedelta(186) <= x.time_since_release and timedelta(31) < x.time_since_last_collection else 0)), axis=1
+        )
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,'time_since_last_collection'].apply(lambda x: 1 if timedelta(0) > x else 0)
+
+        subsetting_eps_ids = subsetting_eps_ids[subsetting_eps_ids['collection_binary']==1].copy()
+        eps_to_collect_id_set = set(subsetting_eps_ids['episode_id'].unique().tolist())  
+
+    ### We are always going to download podcast-level listening methods
+    ### We are only occasionally going to download episode-level listening methods
+    ### If the episode was released within the last month, download it 
+    ### If the episode was released between one month and 6 months ago AND we haven't collected it within the last week. download it
+    ### If the episode was released more than 6 months ago AND we haven't downloaded it within the last month. download it
+
+    # Podcast-level locations df collection (national-level)
+    response = requests.get(url='https://api.simplecast.com/analytics/location',
+        headers=auth_headers,
+        params=get_locations_params)
+    locations = response.json().get('countries')
+    podcast_locations_df = pd.DataFrame.from_dict(locations)
+    podcast_locations_df.to_csv('podcast_locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+
+    get_locations_params.pop('podcast')
+    url = 'https://api.simplecast.com/analytics/location'
+
+    #Episode-level geolocation df collection (national-level)
+    for episode_id in tqdm(eps_to_collect_id_set, desc="Episode-level Geolocation: "):
+        get_locations_params['episode'] = episode_id
+
+        response = requests.get(url,
+            headers=auth_headers,
+            params=get_locations_params)
+        locations = response.json().get('countries')
+        episode_locations_df = pd.DataFrame.from_dict(locations)
+        episode_locations_df['date_collected'] = current_datetime
+        episode_locations_df['episode_id'] = episode_id
+
+        locations_df = pd.concat([locations_df, episode_locations_df], ignore_index=True)
+
+    locations_df.to_csv('locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+    return locations_df
+
 # getEpDownloads(today)
 # getKeyWords(today)
-getListeningMethods(today)
+# getListeningMethods(today)
+getGeoLocations(today)
