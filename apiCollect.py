@@ -41,7 +41,8 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
     # Establishes patterns so that this function is generalizable to lots of types of .csvs
     patterns_dict = {
         'episodes_core' : r'^episodes_core',
-        'episodes_downloads' : r'^episodes_downloads'
+        'episodes_downloads' : r'^episodes_downloads',
+        'keywords' : r'^episodes_keywords',
     }
 
     
@@ -159,9 +160,6 @@ def getAllEpisodes(current_datetime):
         return df
 
 
-
-
-
 def getEpDownloads(current_datetime):
     get_downloads_params = {
         'interval' : 'day',
@@ -171,9 +169,11 @@ def getEpDownloads(current_datetime):
 
     if type(eps_df) == str:
         print('Could not find a episodes_core .csv. Trying to redownload those.')
-        eps_df = getAllEpisodes(current_datetime, last_collected_datetime)
+        eps_df = getAllEpisodes(current_datetime)
+    elif eps_df < current_datetime:
+        print('The episodes_core .csv may be out of date. Calling that API again.')
+        eps_df = getAllEpisodes(current_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
-    
 
     eps_downloads_df, downloads_last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_downloads')
 
@@ -184,7 +184,7 @@ def getEpDownloads(current_datetime):
     
     # If we have collected episode downloads before we only want to download new dates (we pass this this to the API)
     if default_date < downloads_last_collected_datetime:
-        print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.')
+        print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.'.format(downloads_last_collected_datetime))
         get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
 
     for i, obs in eps_df.iterrows():
@@ -210,11 +210,49 @@ def getEpDownloads(current_datetime):
 
     eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), encoding='utf-8')
 
-
-
-
     return eps_downloads_df
 
+def getKeyWords(current_datetime):
+    eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
+
+    if type(eps_df) == str:
+        print('Could not find a episodes_core.csv. Trying to redownload those')
+        eps_df = getAllEpisodes(current_datetime)
+    elif last_collected_datetime < current_datetime:
+        print('The episodes_core .csv may be out of date. Calling that API again')
+        eps_df = getAllEpisodes(current_datetime)
+    eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
+
+    keywords_df, keywords_last_collected_datetime = identifyExistingCollection(current_datetime, 'keywords')
+    
+    if type(keywords_df) == str:
+        print('Could not find a keywords .csv. Going to begin downloading all')
+        keywords_df = pd.DataFrame()
+        keywords_df['episode_id'] = None
+    
+    if default_date < keywords_last_collected_datetime: 
+        print('Found an old keywords .csv dated to {}. Only calling API for more recent download_data'.format(keywords_last_collected_datetime))
+
+    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
+    existing_keywords_episode_id_set = set(keywords_df['episode_id'].unique().tolist())
+
+    keywords_to_collect_episode_id_set = all_eps_episode_id_set - existing_keywords_episode_id_set
+
+    for episode_id in keywords_to_collect_episode_id_set:
+        url = 'https://api.simplecast.com/episodes/{}/keywords'.format(episode_id)
+
+        response = requests.get(url, headers=auth_headers)
+        keywords = response.json().get('collection')
+        keywords_temp_df = pd.DataFrame.from_dict(keywords)
+        keywords_temp_df['episode_id'] = episode_id
 
 
-getEpDownloads(today)
+        keywords_df = pd.concat([keywords_df, keywords_temp_df], ignore_index=True)
+        
+    keywords_df = keywords_df.drop_duplicates(subset=['episode_id', 'value'])
+    keywords_df.to_csv('episodes_keywords-{}.csv'.format(today), encoding='utf-8')
+    return keywords_df
+
+
+# getEpDownloads(today)
+getKeyWords(today)
