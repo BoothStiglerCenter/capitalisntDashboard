@@ -44,7 +44,7 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'episodes_downloads' : r'^episodes_downloads',
         'keywords' : r'^episodes_keywords',
         'listening_methods' : r'^listening_methods',
-        'geolocation' : r'^locations',
+        'geolocation' : r'^episodes_locations',
         'completion' : r'^episodes_completion',
         'devices' : r'^device_class'
     }
@@ -324,7 +324,7 @@ def getListeningMethods(current_datetime):
 
         listening_methods_df = pd.concat([listening_methods_df, episode_listening_methods_df], ignore_index=True)
 
-    listening_methods_df.to_csv('listening_methods-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+    listening_methods_df.to_csv('episodes_listening_methods-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
     ###
 
     return listening_methods_df
@@ -401,7 +401,7 @@ def getGeoLocations(current_datetime):
 
         locations_df = pd.concat([locations_df, episode_locations_df], ignore_index=True)
 
-    locations_df.to_csv('locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+    locations_df.to_csv('episodes_locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
 
     return locations_df
 
@@ -471,9 +471,56 @@ def getDeviceClass(current_datetime):
     current_device_class_comp['date_collected'] = current_datetime
 
     devices_df = pd.concat([devices_df, current_device_class_comp], ignore_index=True)
-    devices_df.to_csv('device_class-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+    devices_df.to_csv('podcast_device_class-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
 
     return devices_df
+
+
+def fileCleanup():
+    filename_pattern = r'(.*)-(\d{4}-\d{2}-\d{2})\.csv'
+    dirlist = os.listdir()
+    dirdict = {
+        'episodes_completion' : [],
+        'episodes_core' : [],
+        'episodes_downloads' : [],
+        'episodes_keywords' : [],
+        'episodes_listening_methods' : [],
+        'episodes_locations' : [],
+        'podcast_device_class' : [],
+        'podcast_listening_methods' : [],
+        'podcast_locations' : []
+    }
+
+
+    for i, filename in enumerate(dirlist):
+        search_obj = re.search(filename_pattern, filename)
+        if search_obj:
+            dirlist_index = i
+            csv_type = search_obj[1]
+            csv_date = search_obj[2]
+
+            dirdict[csv_type].append((dirlist_index, csv_date))
+            print(i, filename)
+
+
+    for key in dirdict.keys():
+        type_files_listed = dirdict.get(key)
+        print(key)
+        while len(type_files_listed) >1:
+        
+            print(type_files_listed)
+            oldest_date = min([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed])
+            oldest_date_tuple_index = [index for index, date in enumerate(type_files_listed) if date[1] == datetime.strftime(oldest_date, date_format)][0]
+            position_in_directory = type_files_listed[oldest_date_tuple_index][0]
+            print(position_in_directory)
+            # print(max([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed]))
+            file_to_remove_path = dirlist[position_in_directory]
+            os.remove(file_to_remove_path)
+            type_files_listed.remove((position_in_directory, oldest_date))
+
+
+    return dirdict
+
 
 
 
@@ -482,4 +529,5 @@ def getDeviceClass(current_datetime):
 # getListeningMethods(today)
 # getGeoLocations(today)
 # getEpCompletionRate(today)
-getDeviceClass(today)
+# getDeviceClass(today)
+fileCleanup()
