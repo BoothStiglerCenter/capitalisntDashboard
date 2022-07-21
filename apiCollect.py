@@ -1,10 +1,7 @@
 import pandas as pd
-import numpy as np
 import requests
-import functools
 import os
 import re
-import time
 import json
 from datetime import datetime, timedelta
 from tqdm import tqdm
