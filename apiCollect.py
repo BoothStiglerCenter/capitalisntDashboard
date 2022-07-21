@@ -47,7 +47,8 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'episodes_downloads' : r'^episodes_downloads',
         'keywords' : r'^episodes_keywords',
         'listening_methods' : r'^listening_methods',
-        'geolocation' : r'^locations'
+        'geolocation' : r'^locations',
+        'completion' : r'^episodes_completion'
     }
  
     
@@ -406,7 +407,54 @@ def getGeoLocations(current_datetime):
 
     return locations_df
 
+def getEpCompletionRate(current_datetime):
+
+    eps_df, last_collection_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
+
+    if type(eps_df) == str:
+        print('Could not find a episodes_core .csv. Trying to re-download these')
+        eps_df = getAllEpisodes(current_datetime)
+    elif last_collection_datetime < current_datetime:
+        print('The episodes_core .csv may be out of date. Calling that API again.')
+        eps_df = getAllEpisodes(current_datetime)
+
+    eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep', 'published_at']]
+
+
+    completion_df, completion_last_collection_datetime = identifyExistingCollection(current_datetime, 'completion')
+
+    if type(completion_df) == str:
+        print('Could not find a episodes_completion .csv. Trying to re-download these')
+        completion_df = pd.DataFrame()
+    if default_date < completion_last_collection_datetime:
+        print('Found an old episodes_completion .csv dated to {}.'.format(completion_last_collection_datetime))
+
+    eps_to_collect_id_set = set(eps_df['episode_id'].unique().tolist())
+
+    url = 'https://api.simplecast.com/analytics/embed/avg_completion'
+    response_list = []
+    for episode_id in tqdm(eps_to_collect_id_set, desc='Episode completion rate: '):
+        response = requests.get(url,
+            headers=auth_headers,
+            params= {
+                'episode' : episode_id
+            })
+        ep_completion = response.json()
+        response_list.append(ep_completion)
+
+    eps_completion_df = pd.DataFrame.from_dict(response_list)
+    eps_completion_df['date_collected'] = current_datetime
+    
+    completion_df = pd.concat([completion_df, eps_completion_df], ignore_index=True)
+
+    completion_df.to_csv('episodes_completion-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+    return completion_df
+
+
+
 # getEpDownloads(today)
 # getKeyWords(today)
 # getListeningMethods(today)
-getGeoLocations(today)
+# getGeoLocations(today)
+getEpCompletionRate(today)
