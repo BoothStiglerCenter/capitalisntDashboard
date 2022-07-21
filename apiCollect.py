@@ -45,7 +45,8 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'keywords' : r'^episodes_keywords',
         'listening_methods' : r'^listening_methods',
         'geolocation' : r'^locations',
-        'completion' : r'^episodes_completion'
+        'completion' : r'^episodes_completion',
+        'devices' : r'^device_class'
     }
  
     
@@ -448,10 +449,37 @@ def getEpCompletionRate(current_datetime):
 
     return completion_df
 
+def getDeviceClass(current_datetime):
+
+    devices_df, devices_last_collected_datetime = identifyExistingCollection(current_datetime, 'devices')
+
+    if type(devices_df) == str:
+        print('Could not find device_class .csv. Downloading from scratch')
+        devices_df = pd.DataFrame()
+    elif devices_last_collected_datetime < current_datetime:
+        print('Found an old device_class .csv dated to {}. Appending new info'.format(devices_last_collected_datetime))
+
+    response = requests.get(
+        url='https://api.simplecast.com/analytics/technology/device_class',
+        headers=auth_headers,
+        params={
+            'podcast' : capitalisnt_podcast_id
+        }
+    )
+    todays_device_class_comp = response.json().get('collection')
+    current_device_class_comp = pd.DataFrame.from_dict(todays_device_class_comp)
+    current_device_class_comp['date_collected'] = current_datetime
+
+    devices_df = pd.concat([devices_df, current_device_class_comp], ignore_index=True)
+    devices_df.to_csv('device_class-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+    return devices_df
+
 
 
 # getEpDownloads(today)
 # getKeyWords(today)
 # getListeningMethods(today)
 # getGeoLocations(today)
-getEpCompletionRate(today)
+# getEpCompletionRate(today)
+getDeviceClass(today)
