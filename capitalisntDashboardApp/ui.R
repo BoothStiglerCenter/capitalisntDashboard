@@ -13,6 +13,7 @@ library(tidyverse)
 library(reactable)
 library(ggiraph)
 library(scales)
+library(reactable)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
@@ -30,13 +31,40 @@ shinyUI(fluidPage(
             tags$h1(getwd())
         ),
         tabPanel(
-            title='Downloads',
-            plotOutput(
-                "downloadsPlot"
+            title = "Downloads",
+            fluidRow(
+                column(9,
+                    echarts4rOutput(
+                        "downloadsPlot",
+                        width = "100%", 
+                        height = "600px"
+                    )
+                ),
+                column(3,
+                    selectInput(
+                        "episodeSelectize",
+                        "Select Episodes:",
+                        choices = episode_titles,
+                        selected = default_selection,
+                        multiple = TRUE
+                    )
+                )
+            ),
+            reactableOutput(
+                "episodeDownloadsTable"
+            ),
+            verbatimTextOutput(
+                "selectedEpisodesVerbatim"
             )
         ),
         tabPanel(
             title='Platforms',
+            echarts4rOutput(
+                "platformShareBar"
+            ),
+            echarts4rOutput(
+                "episodePlatforms"
+            )
             ),
         tabPanel(
             title='Other'

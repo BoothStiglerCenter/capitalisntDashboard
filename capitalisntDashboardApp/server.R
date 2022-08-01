@@ -17,52 +17,112 @@ library(ggiraph)
 library(ggrepel)
 library(scales)
 library(lubridate)
+library(echarts4r)
+library(reactable)
 
+local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # Define server logic required to draw a histogram
+#### DATA PROCESSING
+
 shinyServer(function(input, output) {
-    #### DATA PROCESSING
-    downloads_data <- read_csv('../episodes_downloads-2022-07-19.csv') %>%
-        mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
-        arrange(interval) %>%
-        group_by(episode_id) %>%
-        mutate(days_since_release=row_number(),
-               cumulative_downloads = cumsum(downloads_total),
-               release_date = min(interval),
-               most_recent_date = max(interval),
-               label_text = ifelse(interval == most_recent_date,
-                                   paste(release_date, '--', substr(title, 1, 35)),
-                                   NA),
-               label_text = ifelse(str_length(label_text) > 45,
-                                   paste0(label_text, '...', sep=''),
-                                   label_text)
-               ) 
-    
-    ten_recent_release_dates <- downloads_data %>%
-        ungroup() %>%
-        distinct(release_date, .keep_all =TRUE) %>%
-        slice_max(release_date, n=10) %>%
-        select(release_date) %>%
-        pull()
-    
-    output$downloadsPlot <- renderPlot({
-        ggplot(downloads_data %>%
-                   ungroup()%>%
-                   filter(release_date %in% ten_recent_release_dates) %>%
-                   view()
-                   )+
-            geom_line(aes(x=days_since_release, y=cumulative_downloads, color=title, group=title),
-                      size=2)+
-            geom_label_repel(aes(x=days_since_release, y=cumulative_downloads, color=title, label=label_text),
-                             nudge_x = 4,
-                             xlim=c(0, 50),
-                             ylim=c(0, 2000000),
-                             direction='both')+
-            scale_color_viridis_d(breaks = c(as.numeric(min(downloads_data$release_date)),
-                                             as.numeric(max(downloads_data$release_date))),
-                                  labels = c('Oldest', 'Newest'),
-                                  direction=-1,
-                                  name='Release date:')+
-            theme_minimal()
+    # downloads_path <- ifelse(str_match(local_files, 'episodes_downloads'), 1, NA)
+   
+   
+   ################################################
+   #### DOWNLOADS TAB #####
+   ################################################
+
+    testReactive <- reactive({
+        downloads_data %>%
+            filter(title %in% input$episodeSelectize)
+        # input$episodeSelectize
+        # print(input$episodeSelectize)
+    })
+
+
+
+   ## Cumulative downloads chart
+    output$downloadsPlot <- renderEcharts4r({
+        # downloads_data %>%
+        #     filter(title %in% input$Selectize) %>%
+        testReactive() %>%
+            # downloads_data %>%
+            e_charts(x = days_since_release, dispose = TRUE) %>%
+            e_line(serie = cumulative_downloads, symbol = "none") %>%
+            e_tooltip(trigger = "axis") %>%
+            e_legend(show = FALSE) %>%
+            e_x_axis(name = "Days since release", nameLocation = "middle") %>%
+            e_y_axis(name = "Cumulative downloads") %>%
+            e_datazoom() %>%
+            e_show_loading()
+    })
+
+    output$episodeDownloadsTable <- renderReactable({
+        downloads_data %>%
+            filter(title %in% input$episodeSelectize) %>%
+            group_by(title) %>%
+            mutate(
+                downloads_to_date = ifelse(
+                    most_recent_date == interval,
+                    cumulative_downloads,
+                    NA),
+                downloads_t_14 = ifelse(
+                    days_since_release == 14,
+                    cumulative_downloads,
+                    NA
+                )
+            ) %>%
+            arrange(downloads_t_14) %>%
+            fill(downloads_t_14, downloads_to_date, .direction = "downup") %>%
+            distinct(title, .keep_all = TRUE) %>%
+            select(title, downloads_to_date, downloads_t_14, release_date) %>%
+            reactable(
+                columns = list(
+                    downloads_to_date = colDef(
+                        format = colFormat(separators = TRUE)
+                        ),
+                    downloads_t_14 = colDef(
+                        format = colFormat(separators = TRUE)
+                        )
+                )
+            )
+    })
+
+    output$selectedEpisodesVerbatim <- renderText({
+        input$episodeSelectize
+    })
+
+    output$platformShareBar <- renderEcharts4r({
+        pod_platforms_data %>%
+            # group_by(stack_group) %>%
+            arrange(rank) %>%
+            e_chart(x = name) %>%
+            e_bar(serie = downloads_total) %>%
+            e_legend(show = FALSE) %>%
+            e_tooltip()
+    })
+
+    output$episodePlatforms <- renderEcharts4r({
+        ep_platforms_data %>%
+            pivot_wider(
+                id_cols = c(episode_id, title, release_date),
+                names_from = "name",
+                values_from = "downloads_total"
+            ) %>%
+            arrange(release_date) %>%
+            view() %>%
+            e_chart(x = title) %>%
+            e_bar(serie = `Apple Podcasts`, stack = "grp", color = "#7fc97f") %>%
+            e_bar(serie = `Spotify`, stack = "grp", color = "#beaed4") %>%
+            e_bar(serie = `Overcast`, stack = "grp", color = "#fdc086") %>%
+            e_bar(serie = `Podcast & Radio Addict`, stack = "grp", color = "#ffff99") %>%
+            e_bar(serie = `Simplecast`, stack = "grp", color = "#386cb0") %>%
+            e_bar(serie = `Pocket Casts`, stack = "grp", color = "#f0027f") %>%
+            e_bar(serie = `Google Podcasts`, stack = "grp", color = "#bf5b17") %>%
+            e_bar(serie = `Other`, stack = "grp", color = "#666666") %>%
+            e_legend(show = FALSE) %>%
+            e_datazoom() %>%
+            e_tooltip()
     })
 
 })
