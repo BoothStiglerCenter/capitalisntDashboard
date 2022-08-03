@@ -94,11 +94,11 @@ shinyServer(function(input, output) {
 
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
-            # group_by(stack_group) %>%
             arrange(rank) %>%
             e_chart(x = name) %>%
             e_bar(serie = downloads_total) %>%
             e_legend(show = FALSE) %>%
+            e_show_loading() %>%
             e_tooltip()
     })
 
@@ -108,82 +108,42 @@ shinyServer(function(input, output) {
                 id_cols = c(episode_id, title, release_date),
                 names_from = "name",
                 values_from = "downloads_total"
-            ) %>%
+            ) %>% 
             arrange(release_date) %>%
-            view() %>%
-            e_chart(x = title) %>%
-            e_bar(serie = `Apple Podcasts`, stack = "grp", color = "#7fc97f") %>%
-            e_bar(serie = `Spotify`, stack = "grp", color = "#beaed4") %>%
-            e_bar(serie = `Overcast`, stack = "grp", color = "#fdc086") %>%
-            e_bar(serie = `Podcast & Radio Addict`, stack = "grp", color = "#ffff99") %>%
-            e_bar(serie = `Simplecast`, stack = "grp", color = "#386cb0") %>%
-            e_bar(serie = `Pocket Casts`, stack = "grp", color = "#f0027f") %>%
-            e_bar(serie = `Google Podcasts`, stack = "grp", color = "#bf5b17") %>%
-            e_bar(serie = `Other`, stack = "grp", color = "#666666") %>%
-            e_legend(show = FALSE) %>%
+            e_chart(x = title, dispose = FALSE) %>%
+            e_bar(serie = `Apple Podcasts`,
+                stack = "stack", name = 'Apple Podcasts', color = "#7fc97f",) %>%
+            e_bar(serie = `Spotify`,
+                stack = "stack", name = 'Spotify', color = "#beaed4") %>%
+            e_bar(serie = `Overcast`,
+                stack = "stack", name = 'Overcast', color = "#fdc086") %>%
+            e_bar(serie = `Podcast & Radio Addict`,
+                stack = "stack", name = 'Podcast & Radio Addict', color = "#ffff99") %>%
+            e_bar(serie = `Simplecast`,
+                stack = "stack", name = 'Simplecast', color = "#386cb0") %>%
+            e_bar(serie = `Pocket Casts`,
+                stack = "stack", name = 'Pocket Casts', color = "#f0027f") %>%
+            e_bar(serie = `Google Podcasts`,
+                stack = "stack", name = 'Google Podcasts', color = "#bf5b17") %>%
+            e_bar(serie = `Other`,
+                stack = "stack", name = 'Other', color = "#666666") %>%
+            e_legend(show = TRUE) %>%
             e_datazoom() %>%
+            e_show_loading() %>%
             e_tooltip()
     })
 
-    chart_data <- reactive({
-        selector <- if (is.null(input$species_bar_clicked_serie)){
-            print('here1')
-            input$species_select
-            print(input$species_select)
+    ep_platforms_data_plat_selector <- reactive({
+        # print('in episode selector')
+        # Select only the "clicked bar".
+        # If thing has been clicked yet, return all the bars
+        if (is.null(input$platformShareBar_clicked_data)) {
+            unique(ep_platforms_data$name)
         } else {
-            print('here2')
-            input$species_bar_clicked_serie
-            print(input$species_bar_clicked_serie)
+            str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
         }
-
-        df <- iris %>%
-            # filter(Species %in% selector) %>%
-            select(Species, Sepal.Length) %>%
-            group_by(Species) %>%
-            mutate(
-                mean.Sepal_Length = mean(Sepal.Length),
-                .group = "drop"
-            )
-
-        return (df)
     })
 
-    chart_data_2 <- reactive({
-        selector <- if (is.null(input$species_bar_clicked_serie)){
-            print('here1')
-            input$species_select
-            print(input$species_select)
-        } else {
-            print('here2')
-            input$species_bar_clicked_serie
-            print(input$species_bar_clicked_serie)
-        }
-
-        df <- iris %>%
-            filter(Species %in% selector)
-
-        return (df)
-    })
-
-
-    output$species_bar <- renderEcharts4r({
-        chart_data() %>%
-            e_chart(x = Species) %>%
-            e_bar(serie = mean.Sepal_Length) %>%
-            e_flip_coords()
-    })
-
-    output$species_scatter <- renderEcharts4r({
-        chart_data_2() %>%
-            group_by(Species) %>%
-            e_chart(x = Sepal.Length) %>%
-            e_scatter(Sepal.Width) %>%
-            e_highlight(series_name = input$species_bar_clicked_serie)
-    })
-
-    output$species_interactive_text <- renderPrint({
-        input$species_bar_clicked_serie
-    })
 
 
 })

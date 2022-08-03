@@ -33,14 +33,14 @@ shinyUI(fluidPage(
         tabPanel(
             title = "Downloads",
             fluidRow(
-                column(9,
+                column(10,
                     echarts4rOutput(
                         "downloadsPlot",
                         width = "100%", 
                         height = "600px"
                     )
                 ),
-                column(3,
+                column(2,
                     selectInput(
                         "episodeSelectize",
                         "Select Episodes:",
@@ -52,9 +52,6 @@ shinyUI(fluidPage(
             ),
             reactableOutput(
                 "episodeDownloadsTable"
-            ),
-            verbatimTextOutput(
-                "selectedEpisodesVerbatim"
             )
         ),
         tabPanel(
@@ -74,15 +71,6 @@ shinyUI(fluidPage(
                 choices = unique(iris$Species),
                 selected = c("setosa", "virginica"),
                 multiple = TRUE
-            ),
-            echarts4rOutput(
-                "species_bar"
-            ),
-            echarts4rOutput(
-                "species_scatter"
-            ),
-            verbatimTextOutput(
-                "species_interactive_text"
             )
         )
     )
