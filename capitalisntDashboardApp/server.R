@@ -125,4 +125,29 @@ shinyServer(function(input, output) {
             e_tooltip()
     })
 
+
+    output$calendarPlot <- renderEcharts4r({
+        downloads_data %>%
+            mutate(year = format(interval, '%Y')) %>%
+            filter(year %in% c("2020", "2021", "2022")) %>%
+            group_by(interval) %>%
+            mutate(total_daily_downloads = sum(downloads_total)) %>%
+            arrange(desc(total_daily_downloads)) %>%
+            select(interval, total_daily_downloads, year) %>%
+            distinct(interval, .keep_all = TRUE) %>%
+            ungroup() %>%
+            group_by(year) %>%
+            e_charts(interval) %>%
+            e_calendar(range = "2020", top = "40") %>%
+            e_calendar(range = "2021", top = "220") %>%
+            e_calendar(range = "2022", top = "400") %>%
+            e_heatmap(total_daily_downloads, coord_system = "calendar") %>%
+            e_visual_map(total_daily_downloads, calculable = FALSE, max=10000) %>%
+            e_tooltip(trigger = "item")
+    })
+
+    # output$calendarDayTopEps <- renderText({
+    #     input$calendarPlot_mouseover_data
+    # })
+
 })
