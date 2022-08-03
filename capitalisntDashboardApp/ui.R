@@ -31,15 +31,17 @@ shinyUI(fluidPage(
             tags$h1(getwd()),
             hr(),
             fluidRow(
-                column(9,
+                column(8,
                     echarts4rOutput(
                         "calendarPlot",
                         width = "100%",
                         height = "600px"
                     ),
                 ),                
-                column(3,
-                    "calendarDayTopEps"
+                column(4,
+                    reactableOutput(
+                        "calendarDayTopEps"
+                    )
                 )
             )
         ),

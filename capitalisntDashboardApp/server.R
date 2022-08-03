@@ -94,7 +94,6 @@ shinyServer(function(input, output) {
 
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
-            # group_by(stack_group) %>%
             arrange(rank) %>%
             e_chart(x = name) %>%
             e_bar(serie = downloads_total) %>%
@@ -142,12 +141,26 @@ shinyServer(function(input, output) {
             e_calendar(range = "2021", top = "220") %>%
             e_calendar(range = "2022", top = "400") %>%
             e_heatmap(total_daily_downloads, coord_system = "calendar") %>%
-            e_visual_map(total_daily_downloads, calculable = FALSE, max=10000) %>%
+            e_visual_map(total_daily_downloads, calculable = TRUE) %>%
             e_tooltip(trigger = "item")
     })
 
-    # output$calendarDayTopEps <- renderText({
-    #     input$calendarPlot_mouseover_data
-    # })
+    calendarDayClicked <- reactive({
+        if (is.null(input$calendarPlot_clicked_data)){
+            print('need to return latest thursday')
+        } else {
+            print(input$calendarPlot_clicked_data)
+        }
+        # print(input$calendarPlot_clicked_data)
+        # input$calendarPlot_clicked_data
+        'title'
+    })
+
+    output$calendarDayTopEps <- renderReactable({
+        downloads_data %>%
+            head(5) %>%
+            select(calendarDayClicked()) %>%
+            reactable()
+    })
 
 })
