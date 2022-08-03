@@ -125,4 +125,65 @@ shinyServer(function(input, output) {
             e_tooltip()
     })
 
+    chart_data <- reactive({
+        selector <- if (is.null(input$species_bar_clicked_serie)){
+            print('here1')
+            input$species_select
+            print(input$species_select)
+        } else {
+            print('here2')
+            input$species_bar_clicked_serie
+            print(input$species_bar_clicked_serie)
+        }
+
+        df <- iris %>%
+            # filter(Species %in% selector) %>%
+            select(Species, Sepal.Length) %>%
+            group_by(Species) %>%
+            mutate(
+                mean.Sepal_Length = mean(Sepal.Length),
+                .group = "drop"
+            )
+
+        return (df)
+    })
+
+    chart_data_2 <- reactive({
+        selector <- if (is.null(input$species_bar_clicked_serie)){
+            print('here1')
+            input$species_select
+            print(input$species_select)
+        } else {
+            print('here2')
+            input$species_bar_clicked_serie
+            print(input$species_bar_clicked_serie)
+        }
+
+        df <- iris %>%
+            filter(Species %in% selector)
+
+        return (df)
+    })
+
+
+    output$species_bar <- renderEcharts4r({
+        chart_data() %>%
+            e_chart(x = Species) %>%
+            e_bar(serie = mean.Sepal_Length) %>%
+            e_flip_coords()
+    })
+
+    output$species_scatter <- renderEcharts4r({
+        chart_data_2() %>%
+            group_by(Species) %>%
+            e_chart(x = Sepal.Length) %>%
+            e_scatter(Sepal.Width) %>%
+            e_highlight(series_name = input$species_bar_clicked_serie)
+    })
+
+    output$species_interactive_text <- renderPrint({
+        input$species_bar_clicked_serie
+    })
+
+
 })

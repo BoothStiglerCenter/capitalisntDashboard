@@ -67,7 +67,23 @@ shinyUI(fluidPage(
             )
             ),
         tabPanel(
-            title='Other'
+            title='Other',
+            selectInput(
+                "species_select",
+                "Select Species: ",
+                choices = unique(iris$Species),
+                selected = c("setosa", "virginica"),
+                multiple = TRUE
+            ),
+            echarts4rOutput(
+                "species_bar"
+            ),
+            echarts4rOutput(
+                "species_scatter"
+            ),
+            verbatimTextOutput(
+                "species_interactive_text"
+            )
         )
     )
     
