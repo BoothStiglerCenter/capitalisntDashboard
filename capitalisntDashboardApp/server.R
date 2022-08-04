@@ -145,22 +145,52 @@ shinyServer(function(input, output) {
             e_tooltip(trigger = "item")
     })
 
-    calendarDayClicked <- reactive({
+    calendarDateClicked <- reactive({
+        print('selecting a day')
         if (is.null(input$calendarPlot_clicked_data)){
-            print('need to return latest thursday')
+            print('today is')
+            today <- today()
+            most_recent_sunday <- floor_date(today, "week")
+            if (wday(today) == 4) {
+                print('its a thursday!')
+                today
+            } else if (today - most_recent_sunday > 0){
+            # We are between Sunday and Thursday
+                print('here1')
+                most_recent_thursday <- most_recent_sunday - days(4)
+                most_recent_thursday
+            } else {
+                # We are between Friday and Sunday (inclusive)
+                for (i in 1:3){
+                    print(wday(today) - days(1))
+                    if (wday(today - days(1)) == 4){
+                        today
+                    }
+                }
+            }
         } else {
             print(input$calendarPlot_clicked_data)
+            str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
         }
-        # print(input$calendarPlot_clicked_data)
-        # input$calendarPlot_clicked_data
-        'title'
+
+        str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
+        # 'title'
     })
 
-    output$calendarDayTopEps <- renderReactable({
+    output$calendarDateTopEps <- renderReactable({
+
+        print(class(calendarDateClicked()))
         downloads_data %>%
-            head(5) %>%
-            select(calendarDayClicked()) %>%
-            reactable()
+            filter(interval == calendarDateClicked()) %>%
+            select(title, downloads_total) %>%
+            arrange(desc(downloads_total)) %>%
+            mutate(rank = row_number()) %>%
+            reactable(
+                columns = list(
+                    downloads_total = colDef(format = colFormat(separators = TRUE))
+                    # colDef( = colFormat(separators = TRUE)),
+                )
+            )
     })
 
 })

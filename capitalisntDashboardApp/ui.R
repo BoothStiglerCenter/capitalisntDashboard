@@ -40,7 +40,7 @@ shinyUI(fluidPage(
                 ),                
                 column(4,
                     reactableOutput(
-                        "calendarDayTopEps"
+                        "calendarDateTopEps"
                     )
                 )
             )
