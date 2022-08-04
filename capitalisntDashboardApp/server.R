@@ -133,6 +133,76 @@ shinyServer(function(input, output) {
             e_tooltip()
     })
 
+
+
+    output$calendarPlot <- renderEcharts4r({
+        downloads_data %>%
+            mutate(year = format(interval, '%Y')) %>%
+            filter(year %in% c("2020", "2021", "2022")) %>%
+            group_by(interval) %>%
+            mutate(total_daily_downloads = sum(downloads_total)) %>%
+            arrange(desc(total_daily_downloads)) %>%
+            select(interval, total_daily_downloads, year) %>%
+            distinct(interval, .keep_all = TRUE) %>%
+            ungroup() %>%
+            group_by(year) %>%
+            e_charts(interval) %>%
+            e_calendar(range = "2020", top = "40") %>%
+            e_calendar(range = "2021", top = "220") %>%
+            e_calendar(range = "2022", top = "400") %>%
+            e_heatmap(total_daily_downloads, coord_system = "calendar") %>%
+            e_visual_map(total_daily_downloads, calculable = TRUE) %>%
+            e_tooltip(trigger = "item")
+    })
+
+    calendarDateClicked <- reactive({
+        print('selecting a day')
+        if (is.null(input$calendarPlot_clicked_data)){
+            print('today is')
+            today <- today()
+            most_recent_sunday <- floor_date(today, "week")
+            if (wday(today) == 4) {
+                print('its a thursday!')
+                today
+            } else if (today - most_recent_sunday > 0){
+            # We are between Sunday and Thursday
+                print('here1')
+                most_recent_thursday <- most_recent_sunday - days(4)
+                most_recent_thursday
+            } else {
+                # We are between Friday and Sunday (inclusive)
+                for (i in 1:3){
+                    print(wday(today) - days(1))
+                    if (wday(today - days(1)) == 4){
+                        today
+                    }
+                }
+            }
+        } else {
+            print(input$calendarPlot_clicked_data)
+            str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
+        }
+
+        str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
+        # 'title'
+    })
+
+    output$calendarDateTopEps <- renderReactable({
+
+        print(class(calendarDateClicked()))
+        downloads_data %>%
+            filter(interval == calendarDateClicked()) %>%
+            select(title, downloads_total) %>%
+            arrange(desc(downloads_total)) %>%
+            mutate(rank = row_number()) %>%
+            reactable(
+                columns = list(
+                    downloads_total = colDef(format = colFormat(separators = TRUE))
+                    # colDef( = colFormat(separators = TRUE)),
+                )
+            )
+    })
+
     ep_platforms_data_plat_selector <- reactive({
         # print('in episode selector')
         # Select only the "clicked bar".
@@ -143,6 +213,7 @@ shinyServer(function(input, output) {
             str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
         }
     })
+
 
 
 

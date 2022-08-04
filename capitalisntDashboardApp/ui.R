@@ -28,7 +28,22 @@ shinyUI(fluidPage(
         tabPanel(
             title='About',
             includeMarkdown('about_panel.md'),
-            tags$h1(getwd())
+            tags$h1(getwd()),
+            hr(),
+            fluidRow(
+                column(8,
+                    echarts4rOutput(
+                        "calendarPlot",
+                        width = "100%",
+                        height = "600px"
+                    ),
+                ),                
+                column(4,
+                    reactableOutput(
+                        "calendarDateTopEps"
+                    )
+                )
+            )
         ),
         tabPanel(
             title = "Downloads",
