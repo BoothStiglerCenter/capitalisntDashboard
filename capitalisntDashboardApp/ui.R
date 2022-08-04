@@ -70,6 +70,12 @@ shinyUI(fluidPage(
             )
         ),
         tabPanel(
+            title = "Geography",
+            echarts4rOutput(
+                "globalListeners"
+            )
+        ),
+        tabPanel(
             title='Platforms',
             echarts4rOutput(
                 "platformShareBar"

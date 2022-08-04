@@ -11,6 +11,7 @@ library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
+library(countrycode)
 
 `%notin%` <- Negate(`%in%`)
 
@@ -27,8 +28,19 @@ for (file in local_files) {
         podcast_platforms <- file
     } else if (str_detect(file, 'episodes_listening_methods')) {
         episode_platforms <- file
+    } else if (str_detect(file, 'podcast_locations')) {
+        podcast_locations <- file
+    } else if (str_detect(file, 'episode_locations')) {
+        episode_locations <- file
     }
 }
+
+
+################################################
+#### DOWNLOADS TAB ##### DATA ####
+################################################
+#### Also generated Calendar data ####
+
 downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
         mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
         arrange(interval) %>%
@@ -55,8 +67,6 @@ episode_title_id <- downloads_data %>%
     select(episode_id, title, release_date) %>%
     distinct(episode_id, .keep_all = TRUE)
 
-
-
 episode_titles <- downloads_data %>%
     distinct(release_date, .keep_all = TRUE) %>%
     arrange(desc(release_date)) %>%
@@ -69,6 +79,10 @@ default_selection <- downloads_data %>%
         slice_max(release_date, n=5) %>%
         select(title) %>%
         pull()
+
+################################################
+#### PLATFORMS TAB ##### DATA ####
+################################################
 
 pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) %>%
     mutate(
@@ -89,7 +103,7 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
     mutate(
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
-    ) %>% view()
+    )
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -134,3 +148,18 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
     arrange(desc(downloads_total)) %>%
     group_by(episode_id) %>%
     mutate(rank = row_number())
+
+
+################################################
+#### GEOGRAPHY/MAPS TAB ##### DATA ####
+################################################
+
+### echarts4r likes to use 'country.name.en' (see countrycode())
+
+podcast_locations_data <- read_csv(paste0(path_prepend, podcast_locations, sep=""))
+
+country_names <- read_csv(paste0(path_prepend, 'simplecast_countries.csv')) %>%
+    rename('name' = 'simplecast_countries')
+
+podcast_locations_data <- podcast_locations_data %>%
+    left_join(country_names, by = "name")

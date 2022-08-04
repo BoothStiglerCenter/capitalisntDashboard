@@ -24,10 +24,7 @@ local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.c
 # Define server logic required to draw a histogram
 #### DATA PROCESSING
 
-shinyServer(function(input, output) {
-    # downloads_path <- ifelse(str_match(local_files, 'episodes_downloads'), 1, NA)
-   
-   
+shinyServer(function(input, output) {   
    ################################################
    #### DOWNLOADS TAB #####
    ################################################
@@ -38,8 +35,6 @@ shinyServer(function(input, output) {
         # input$episodeSelectize
         # print(input$episodeSelectize)
     })
-
-
 
    ## Cumulative downloads chart
     output$downloadsPlot <- renderEcharts4r({
@@ -92,6 +87,26 @@ shinyServer(function(input, output) {
         input$episodeSelectize
     })
 
+    ################################################
+    #### GEOGRAPHY/MAPS TAB #####
+    ################################################
+    output$globalListeners <- renderEcharts4r({
+        podcast_locations_data %>%
+            e_charts(country.name.en) %>%
+            e_map(downloads_total) %>%
+            e_visual_map(downloads_total) %>%
+            e_datazoom()
+
+
+    })
+
+
+
+
+    ################################################
+    #### PLATFORMS TAB #####
+    ################################################
+
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
             arrange(rank) %>%
@@ -133,6 +148,22 @@ shinyServer(function(input, output) {
             e_tooltip()
     })
 
+    ep_platforms_data_plat_selector <- reactive({
+        # print('in episode selector')
+        # Select only the "clicked bar".
+        # If thing has been clicked yet, return all the bars
+        if (is.null(input$platformShareBar_clicked_data)) {
+            unique(ep_platforms_data$name)
+        } else {
+            str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
+        }
+    })
+
+
+
+    ################################################
+    #### ABOUT/HOME TAB #####
+    ################################################
 
 
     output$calendarPlot <- renderEcharts4r({
@@ -156,44 +187,35 @@ shinyServer(function(input, output) {
     })
 
     calendarDateClicked <- reactive({
-        print('selecting a day')
         if (is.null(input$calendarPlot_clicked_data)){
-            print('today is')
             today <- today()
             most_recent_sunday <- floor_date(today, "week")
             if (wday(today) == 4) {
-                print('its a thursday!')
                 today
             } else if (today - most_recent_sunday > 0){
             # We are between Sunday and Thursday
-                print('here1')
                 most_recent_thursday <- most_recent_sunday - days(4)
                 most_recent_thursday
             } else {
                 # We are between Friday and Sunday (inclusive)
                 for (i in 1:3){
                     print(wday(today) - days(1))
-                    if (wday(today - days(1)) == 4){
+                    if (wday(today - days(1)) == 4) {
                         today
                     }
                 }
             }
         } else {
-            print(input$calendarPlot_clicked_data)
             str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
         }
-
-        str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
-        # 'title'
     })
 
     output$calendarDateTopEps <- renderReactable({
-
-        print(class(calendarDateClicked()))
         downloads_data %>%
             filter(interval == calendarDateClicked()) %>%
             select(title, downloads_total) %>%
             arrange(desc(downloads_total)) %>%
+            ungroup() %>%
             mutate(rank = row_number()) %>%
             reactable(
                 columns = list(
@@ -201,17 +223,6 @@ shinyServer(function(input, output) {
                     # colDef( = colFormat(separators = TRUE)),
                 )
             )
-    })
-
-    ep_platforms_data_plat_selector <- reactive({
-        # print('in episode selector')
-        # Select only the "clicked bar".
-        # If thing has been clicked yet, return all the bars
-        if (is.null(input$platformShareBar_clicked_data)) {
-            unique(ep_platforms_data$name)
-        } else {
-            str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
-        }
     })
 
 
