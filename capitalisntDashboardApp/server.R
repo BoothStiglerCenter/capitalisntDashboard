@@ -94,11 +94,11 @@ shinyServer(function(input, output) {
 
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
-            # group_by(stack_group) %>%
             arrange(rank) %>%
             e_chart(x = name) %>%
             e_bar(serie = downloads_total) %>%
             e_legend(show = FALSE) %>%
+            e_show_loading() %>%
             e_tooltip()
     })
 
@@ -108,21 +108,42 @@ shinyServer(function(input, output) {
                 id_cols = c(episode_id, title, release_date),
                 names_from = "name",
                 values_from = "downloads_total"
-            ) %>%
+            ) %>% 
             arrange(release_date) %>%
-            view() %>%
-            e_chart(x = title) %>%
-            e_bar(serie = `Apple Podcasts`, stack = "grp", color = "#7fc97f") %>%
-            e_bar(serie = `Spotify`, stack = "grp", color = "#beaed4") %>%
-            e_bar(serie = `Overcast`, stack = "grp", color = "#fdc086") %>%
-            e_bar(serie = `Podcast & Radio Addict`, stack = "grp", color = "#ffff99") %>%
-            e_bar(serie = `Simplecast`, stack = "grp", color = "#386cb0") %>%
-            e_bar(serie = `Pocket Casts`, stack = "grp", color = "#f0027f") %>%
-            e_bar(serie = `Google Podcasts`, stack = "grp", color = "#bf5b17") %>%
-            e_bar(serie = `Other`, stack = "grp", color = "#666666") %>%
-            e_legend(show = FALSE) %>%
+            e_chart(x = title, dispose = FALSE) %>%
+            e_bar(serie = `Apple Podcasts`,
+                stack = "stack", name = 'Apple Podcasts', color = "#7fc97f",) %>%
+            e_bar(serie = `Spotify`,
+                stack = "stack", name = 'Spotify', color = "#beaed4") %>%
+            e_bar(serie = `Overcast`,
+                stack = "stack", name = 'Overcast', color = "#fdc086") %>%
+            e_bar(serie = `Podcast & Radio Addict`,
+                stack = "stack", name = 'Podcast & Radio Addict', color = "#ffff99") %>%
+            e_bar(serie = `Simplecast`,
+                stack = "stack", name = 'Simplecast', color = "#386cb0") %>%
+            e_bar(serie = `Pocket Casts`,
+                stack = "stack", name = 'Pocket Casts', color = "#f0027f") %>%
+            e_bar(serie = `Google Podcasts`,
+                stack = "stack", name = 'Google Podcasts', color = "#bf5b17") %>%
+            e_bar(serie = `Other`,
+                stack = "stack", name = 'Other', color = "#666666") %>%
+            e_legend(show = TRUE) %>%
             e_datazoom() %>%
+            e_show_loading() %>%
             e_tooltip()
     })
+
+    ep_platforms_data_plat_selector <- reactive({
+        # print('in episode selector')
+        # Select only the "clicked bar".
+        # If thing has been clicked yet, return all the bars
+        if (is.null(input$platformShareBar_clicked_data)) {
+            unique(ep_platforms_data$name)
+        } else {
+            str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
+        }
+    })
+
+
 
 })
