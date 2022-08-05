@@ -11,7 +11,6 @@ library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
-library(viridis)
 
 `%notin%` <- Negate(`%in%`)
 
@@ -19,20 +18,7 @@ local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.c
 path_prepend = '../'
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
-
-
-discrete_palette <- c(
-    "#7fc97f",
-    "#beaed4",
-    "#fdc086",
-    "#ffff99",
-    "#386cb0",
-    "#f0027f",
-    "#bf5b17",
-    "#666666"
-)
-
-
+# Define server logic required to draw a histogram
 #### DATA PROCESSING
 for (file in local_files) {
     if (str_detect(file, 'episodes_downloads')){
@@ -41,6 +27,8 @@ for (file in local_files) {
         podcast_platforms <- file
     } else if (str_detect(file, 'episodes_listening_methods')) {
         episode_platforms <- file
+    } else if (str_detect(file, 'episodes_completion')) {
+        completion_rate <- file
     }
 }
 downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
@@ -77,8 +65,6 @@ episode_titles <- downloads_data %>%
     select(title) %>%
     pull()
 
-downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent epsisodes are shown. Episodes are listed by release date."
-
 default_selection <- downloads_data %>%
         ungroup() %>%
         distinct(release_date, .keep_all = TRUE) %>%
@@ -105,8 +91,7 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
     mutate(
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
-    )
-pod_platforms_data$color <- discrete_palette
+    ) %>% view()
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -152,4 +137,10 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
     group_by(episode_id) %>%
     mutate(rank = row_number())
 
-platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is availalble. Time-series is only available with manual interval-timed data-collection."
+platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is available. Time-series is only available with manual interval-timed data-collection."
+
+
+completion_rate_data <- read_csv(paste0(path_prepend, completion_rate, sep = "")) %>%
+    select(id, avg_completion, date_collected) %>%
+    left_join(episode_title_id, by = c("id" = "episode_id")) %>%
+    select(title, id, avg_completion, date_collected)

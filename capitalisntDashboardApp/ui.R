@@ -86,6 +86,14 @@ shinyUI(fluidPage(
             tags$em(platforms_caveat_text)
             ),
         tabPanel(
+            title = "Completion",
+            echarts4rOutput(
+                "completionRatePlot",
+                width = "100%",
+                height = "500px"
+            )
+        ),
+        tabPanel(
             title='Other',
             selectInput(
                 "species_select",
@@ -94,7 +102,7 @@ shinyUI(fluidPage(
                 selected = c("setosa", "virginica"),
                 multiple = TRUE
             )
-        )
+        ),
     )
     
     

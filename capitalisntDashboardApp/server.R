@@ -75,10 +75,17 @@ shinyServer(function(input, output) {
                     NA
                 )
             ) %>%
+            left_join(completion_rate_data, by = "title") %>%
             arrange(downloads_t_14) %>%
             fill(downloads_t_14, downloads_to_date, .direction = "downup") %>%
             distinct(title, .keep_all = TRUE) %>%
-            select(release_date, title, downloads_to_date, downloads_t_14) %>%
+            select(
+                release_date,
+                title,
+                downloads_to_date,
+                downloads_t_14,
+                avg_completion
+            ) %>%
             reactable(
                 defaultSorted = "release_date",
                 defaultSortOrder = "desc",
@@ -96,6 +103,9 @@ shinyServer(function(input, output) {
                     downloads_t_14 = colDef(
                         name = "Downloads (t=14)",
                         format = colFormat(separators = TRUE)
+                    ),
+                    avg_completion = colDef(
+                        name = "Completion rate:"
                     )
                 )
             )
@@ -145,25 +155,6 @@ shinyServer(function(input, output) {
             e_show_loading() %>%
             e_tooltip() %>%
             e_color(discrete_palette)
-                
-                # e_color_range(
-                # data.frame(series = c('Apple Podcasts', 'Spotify', 'Overcast', 'Podcast & Radio Addict', 'Simplecast', 'Pocket Casts', 'Google Podcasts', 'Other')) %>%
-                # mutate(series = as.numeric(as.factor(series))),
-                # series,
-                # colors) %>%
-                # select(colors) %>%
-                # pull())
-            # ))
-            # e_color_range(
-            #     "#7fc97f",
-            #     "#beaed4",
-            #     "#fdc086",
-            #     "#ffff99",
-            #     "#386cb0",
-            #     "#f0027f",
-            #     "#bf5b17",
-            #     "#666666",
-            # )
     })
 
 
@@ -195,29 +186,25 @@ shinyServer(function(input, output) {
             today <- today()
             most_recent_sunday <- floor_date(today, "week")
             if (wday(today) == 4) {
-                print('its a thursday!')
+                # print('its a thursday!')
                 today
             } else if (today - most_recent_sunday > 0){
             # We are between Sunday and Thursday
-                print('here1')
+                # print('here1')
                 most_recent_thursday <- most_recent_sunday - days(4)
                 most_recent_thursday
             } else {
                 # We are between Friday and Sunday (inclusive)
                 for (i in 1:3){
-                    print(wday(today) - days(1))
-                    if (wday(today - days(1)) == 4){
+                    # print(wday(today) - days(1))
+                    if (wday(today - days(i)) == 4){
                         today
                     }
                 }
             }
         } else {
-            print(input$calendarPlot_clicked_data)
             str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
         }
-
-        str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
-        # 'title'
     })
 
     output$calendarDateTopEps <- renderReactable({
@@ -237,7 +224,6 @@ shinyServer(function(input, output) {
     })
 
     ep_platforms_data_plat_selector <- reactive({
-        # print('in episode selector')
         # Select only the "clicked bar".
         # If thing has been clicked yet, return all the bars
         if (is.null(input$platformShareBar_clicked_data)) {
@@ -247,6 +233,10 @@ shinyServer(function(input, output) {
         }
     })
 
+    output$completionRatePlot <- renderEcharts4r({
+        completion_rate_data %>%
+            view()
+    })
 
 
 
