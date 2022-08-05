@@ -11,6 +11,7 @@ library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
+library(sparkline)
 
 `%notin%` <- Negate(`%in%`)
 

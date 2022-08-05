@@ -86,6 +86,8 @@ shinyServer(function(input, output) {
                 downloads_t_14,
                 avg_completion
             ) %>%
+            # This mutate needs to be modified with actual completion-rate data
+            mutate(completion_bullet_range = list(c(runif(1,min=0.5, max=0.7), avg_completion, 1))) %>%
             reactable(
                 defaultSorted = "release_date",
                 defaultSortOrder = "desc",
@@ -104,8 +106,15 @@ shinyServer(function(input, output) {
                         name = "Downloads (t=14)",
                         format = colFormat(separators = TRUE)
                     ),
-                    avg_completion = colDef(
-                        name = "Completion rate:"
+                    # avg_completion = colDef(
+                    completion_bullet_range = colDef(
+                        name = "Completion rate:",
+                        ### This function needs to be modified with actual completion-rate data.
+                        ### This will also require formatting the sparkline tooltip
+                        ### See https://omnipotent.net/jquery.sparkline/#tooltips for documentation
+                        cell = function(comp_value) {
+                            sparkline(comp_value, type = "bullet")
+                        }
                     )
                 )
             )
