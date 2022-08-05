@@ -11,6 +11,7 @@ library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
+library(viridis)
 
 `%notin%` <- Negate(`%in%`)
 
@@ -18,7 +19,20 @@ local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.c
 path_prepend = '../'
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
-# Define server logic required to draw a histogram
+
+
+discrete_palette <- c(
+    "#7fc97f",
+    "#beaed4",
+    "#fdc086",
+    "#ffff99",
+    "#386cb0",
+    "#f0027f",
+    "#bf5b17",
+    "#666666"
+)
+
+
 #### DATA PROCESSING
 for (file in local_files) {
     if (str_detect(file, 'episodes_downloads')){
@@ -91,7 +105,8 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
     mutate(
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
-    ) %>% view()
+    )
+pod_platforms_data$color <- discrete_palette
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -136,3 +151,5 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
     arrange(desc(downloads_total)) %>%
     group_by(episode_id) %>%
     mutate(rank = row_number())
+
+platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is availalble. Time-series is only available with manual interval-timed data-collection."

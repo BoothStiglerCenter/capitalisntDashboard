@@ -37,7 +37,7 @@ shinyUI(fluidPage(
                         width = "100%",
                         height = "600px"
                     ),
-                ),                
+                ),
                 column(4,
                     reactableOutput(
                         "calendarDateTopEps"
@@ -75,12 +75,15 @@ shinyUI(fluidPage(
         ),
         tabPanel(
             title='Platforms',
+            tags$h2("Podcast -- Most Popular Listening Platforms"),
             echarts4rOutput(
                 "platformShareBar"
             ),
+            tags$h2("Episode -- Most Popular Listening Platforms"),
             echarts4rOutput(
                 "episodePlatforms"
-            )
+            ),
+            tags$em(platforms_caveat_text)
             ),
         tabPanel(
             title='Other',

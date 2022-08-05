@@ -107,12 +107,12 @@ shinyServer(function(input, output) {
 
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
-            arrange(rank) %>%
             e_chart(x = name) %>%
-            e_bar(serie = downloads_total) %>%
+            e_bar(serie = downloads_total, colorBy ='series') %>%
             e_legend(show = FALSE) %>%
             e_show_loading() %>%
-            e_tooltip()
+            e_tooltip() %>%
+            e_add('itemStyle', color)
     })
 
     output$episodePlatforms <- renderEcharts4r({
@@ -125,25 +125,45 @@ shinyServer(function(input, output) {
             arrange(release_date) %>%
             e_chart(x = title, dispose = FALSE) %>%
             e_bar(serie = `Apple Podcasts`,
-                stack = "stack", name = 'Apple Podcasts', color = "#7fc97f",) %>%
+                stack = "stack", name = 'Apple Podcasts') %>%
             e_bar(serie = `Spotify`,
-                stack = "stack", name = 'Spotify', color = "#beaed4") %>%
+                stack = "stack", name = 'Spotify') %>%
             e_bar(serie = `Overcast`,
-                stack = "stack", name = 'Overcast', color = "#fdc086") %>%
+                stack = "stack", name = 'Overcast') %>%
             e_bar(serie = `Podcast & Radio Addict`,
-                stack = "stack", name = 'Podcast & Radio Addict', color = "#ffff99") %>%
+                stack = "stack", name = 'Podcast & Radio Addict') %>%
             e_bar(serie = `Simplecast`,
-                stack = "stack", name = 'Simplecast', color = "#386cb0") %>%
+                stack = "stack", name = 'Simplecast') %>%
             e_bar(serie = `Pocket Casts`,
-                stack = "stack", name = 'Pocket Casts', color = "#f0027f") %>%
+                stack = "stack", name = 'Pocket Casts') %>%
             e_bar(serie = `Google Podcasts`,
-                stack = "stack", name = 'Google Podcasts', color = "#bf5b17") %>%
+                stack = "stack", name = 'Google Podcasts') %>%
             e_bar(serie = `Other`,
-                stack = "stack", name = 'Other', color = "#666666") %>%
+                stack = "stack", name = 'Other') %>%
             e_legend(show = TRUE) %>%
             e_datazoom() %>%
             e_show_loading() %>%
-            e_tooltip()
+            e_tooltip() %>%
+            e_color(discrete_palette)
+                
+                # e_color_range(
+                # data.frame(series = c('Apple Podcasts', 'Spotify', 'Overcast', 'Podcast & Radio Addict', 'Simplecast', 'Pocket Casts', 'Google Podcasts', 'Other')) %>%
+                # mutate(series = as.numeric(as.factor(series))),
+                # series,
+                # colors) %>%
+                # select(colors) %>%
+                # pull())
+            # ))
+            # e_color_range(
+            #     "#7fc97f",
+            #     "#beaed4",
+            #     "#fdc086",
+            #     "#ffff99",
+            #     "#386cb0",
+            #     "#f0027f",
+            #     "#bf5b17",
+            #     "#666666",
+            # )
     })
 
 
