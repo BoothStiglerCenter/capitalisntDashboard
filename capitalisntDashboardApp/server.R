@@ -53,7 +53,10 @@ shinyServer(function(input, output) {
             e_legend(show = FALSE) %>%
             e_x_axis(name = "Days since release", nameLocation = "middle") %>%
             e_y_axis(name = "Cumulative downloads") %>%
-            e_datazoom() %>%
+            e_datazoom(
+                end = 50,
+                minValueSpan = 14,
+            ) %>%
             e_show_loading()
     })
 
@@ -75,15 +78,25 @@ shinyServer(function(input, output) {
             arrange(downloads_t_14) %>%
             fill(downloads_t_14, downloads_to_date, .direction = "downup") %>%
             distinct(title, .keep_all = TRUE) %>%
-            select(title, downloads_to_date, downloads_t_14, release_date) %>%
+            select(release_date, title, downloads_to_date, downloads_t_14) %>%
             reactable(
+                defaultSorted = "release_date",
+                defaultSortOrder = "desc",
                 columns = list(
+                    release_date = colDef(
+                        name = "Release Date"
+                    ),
+                    title = colDef(
+                        name = "Title"
+                    ),
                     downloads_to_date = colDef(
+                        name =  "Downloads to Date",
                         format = colFormat(separators = TRUE)
-                        ),
+                    ),
                     downloads_t_14 = colDef(
+                        name = "Downloads (t=14)",
                         format = colFormat(separators = TRUE)
-                        )
+                    )
                 )
             )
     })

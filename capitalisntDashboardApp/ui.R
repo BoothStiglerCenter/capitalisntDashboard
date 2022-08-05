@@ -47,6 +47,7 @@ shinyUI(fluidPage(
         ),
         tabPanel(
             title = "Downloads",
+            tags$h1("Cumulative Daily Downloads"),
             fluidRow(
                 column(10,
                     echarts4rOutput(
@@ -56,9 +57,12 @@ shinyUI(fluidPage(
                     )
                 ),
                 column(2,
+                    tags$h3("Select Episodes:"),
+                    tags$p(downloads_select_explainer),
                     selectInput(
                         "episodeSelectize",
-                        "Select Episodes:",
+                        label = "",
+                        # "Select Episodes:",
                         choices = episode_titles,
                         selected = default_selection,
                         multiple = TRUE

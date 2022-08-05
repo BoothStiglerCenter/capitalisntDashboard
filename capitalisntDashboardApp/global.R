@@ -63,6 +63,8 @@ episode_titles <- downloads_data %>%
     select(title) %>%
     pull()
 
+downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent epsisodes are shown. Episodes are listed by release date."
+
 default_selection <- downloads_data %>%
         ungroup() %>%
         distinct(release_date, .keep_all = TRUE) %>%
