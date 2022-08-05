@@ -242,9 +242,17 @@ shinyServer(function(input, output) {
         }
     })
 
-    output$completionRatePlot <- renderEcharts4r({
-        completion_rate_data %>%
-            view()
+    output$completionRatePlot <- renderPlot({
+        ggplot(completion_rate_data %>%
+            ungroup() %>%
+            group_by(id) %>%
+            mutate(is_isnt_begin_time = runif(1, min = avg_completion, max = 0.9)) %>%
+            ungroup()) +
+            geom_segment(aes(x = 0, xend = avg_completion, y = release_date, yend = release_date)) +
+            geom_point(aes(x = avg_completion, y = release_date), color = 'orange', size =2) +
+            geom_point(aes(x = is_isnt_begin_time, y = release_date), color = 'red', shape = 15)+
+            xlim(c(0,1))+
+            theme_minimal()
     })
 
 

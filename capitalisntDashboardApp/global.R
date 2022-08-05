@@ -92,7 +92,7 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
     mutate(
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
-    ) %>% view()
+    )
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -144,4 +144,4 @@ platforms_caveat_text <- "Only present-moment, cross-sectional listening platfor
 completion_rate_data <- read_csv(paste0(path_prepend, completion_rate, sep = "")) %>%
     select(id, avg_completion, date_collected) %>%
     left_join(episode_title_id, by = c("id" = "episode_id")) %>%
-    select(title, id, avg_completion, date_collected)
+    select(title, id, avg_completion, date_collected, release_date)

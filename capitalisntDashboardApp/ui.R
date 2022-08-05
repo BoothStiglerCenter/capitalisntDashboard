@@ -87,10 +87,12 @@ shinyUI(fluidPage(
             ),
         tabPanel(
             title = "Completion",
-            echarts4rOutput(
+            plotOutput(
                 "completionRatePlot",
                 width = "100%",
-                height = "500px"
+                height = "3000px"
+                # width = "100%",
+                # height = "500px"
             )
         ),
         tabPanel(
