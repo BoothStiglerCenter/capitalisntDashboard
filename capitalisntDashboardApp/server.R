@@ -271,7 +271,7 @@ shinyServer(function(input, output) {
                 size = 4,
                 alpha = 0.5,
                 color = "#4444af"
-            ) + 
+            ) +
             geom_point(
                 aes(x = avg_completion, y = release_date),
                 color = "orange",
@@ -291,7 +291,7 @@ shinyServer(function(input, output) {
                 hjust = 1
             ) +
             xlim(c(-0.25, 1)) +
-            # ggtitle("Share of Episode Completed") + 
+            # ggtitle("Share of Episode Completed") +
             theme_minimal()
     })
 
