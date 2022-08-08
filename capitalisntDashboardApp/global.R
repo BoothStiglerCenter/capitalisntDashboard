@@ -93,6 +93,7 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
     )
+pod_platforms_data$color <- discrete_palette
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%

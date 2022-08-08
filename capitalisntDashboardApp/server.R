@@ -80,7 +80,7 @@ shinyServer(function(input, output) {
             fill(downloads_t_14, downloads_to_date, .direction = "downup") %>%
             distinct(title, .keep_all = TRUE) %>%
             select(
-                release_date,
+                release_date.x,
                 title,
                 downloads_to_date,
                 downloads_t_14,
@@ -89,10 +89,10 @@ shinyServer(function(input, output) {
             # This mutate needs to be modified with actual completion-rate data
             mutate(completion_bullet_range = list(c(runif(1,min=0.5, max=0.7), avg_completion, 1))) %>%
             reactable(
-                defaultSorted = "release_date",
+                defaultSorted = "release_date.x",
                 defaultSortOrder = "desc",
                 columns = list(
-                    release_date = colDef(
+                    release_date.x = colDef(
                         name = "Release Date"
                     ),
                     title = colDef(
@@ -106,7 +106,7 @@ shinyServer(function(input, output) {
                         name = "Downloads (t=14)",
                         format = colFormat(separators = TRUE)
                     ),
-                    # avg_completion = colDef(
+                    avg_completion = colDef(show = FALSE),
                     completion_bullet_range = colDef(
                         name = "Completion rate:",
                         ### This function needs to be modified with actual completion-rate data.
@@ -189,9 +189,9 @@ shinyServer(function(input, output) {
     })
 
     calendarDateClicked <- reactive({
-        print('selecting a day')
+        # print('selecting a day')
         if (is.null(input$calendarPlot_clicked_data)){
-            print('today is')
+            # print('today is')
             today <- today()
             most_recent_sunday <- floor_date(today, "week")
             if (wday(today) == 4) {
@@ -223,11 +223,16 @@ shinyServer(function(input, output) {
             filter(interval == calendarDateClicked()) %>%
             select(title, downloads_total) %>%
             arrange(desc(downloads_total)) %>%
+            ungroup() %>%
             mutate(rank = row_number()) %>%
             reactable(
                 columns = list(
-                    downloads_total = colDef(format = colFormat(separators = TRUE))
-                    # colDef( = colFormat(separators = TRUE)),
+                    title = colDef(name = "Title"),
+                    rank = colDef(name = "Rank"),
+                    downloads_total = colDef(
+                        name = "Daily Downloads",
+                        format = colFormat(separators = TRUE)
+                    )
                 )
             )
     })
