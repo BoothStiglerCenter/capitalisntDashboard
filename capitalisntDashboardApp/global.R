@@ -164,11 +164,14 @@ platforms_caveat_text <- "Only present-moment, cross-sectional listening platfor
 #     select(title, id, avg_completion, date_collected, release_date)
 
 completion_rate_data <- read_csv(paste0(path_prepend, is_isnt, sep = "")) %>%
-    select('Episode Title', 'Average Consumption', "Total Length", "When Is/Isn't?") %>%
+    select("Episode Title", "Average Consumption", "Total Length", "When Is/Isn't?", "Release Date") %>%
     rename(
         'title' = 'Episode Title',
         'avg_completion' = 'Average Consumption',
         'is_isnt' = "When Is/Isn't?",
-        'run_time' = "Total Length"
+        'run_time' = "Total Length",
     ) %>%
-    mutate(is_isnt = ifelse(is_isnt == 'N/A', 0, is_isnt))
+    mutate(
+        `Release Date` = as.Date(`Release Date`, "%m/%d/%Y"),
+        is_isnt = ifelse(is_isnt == 'N/A', 0, is_isnt),
+        is_isnt = as.numeric(is_isnt))
