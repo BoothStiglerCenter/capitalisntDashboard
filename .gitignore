@@ -2,6 +2,7 @@
 ### MUST IGNORE API KEYS ###
 
 env_keys.json
+.Renviron
 
 
 ### Ignore all .csv files for the time being
