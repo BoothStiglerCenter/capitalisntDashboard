@@ -17,7 +17,7 @@ library(reactable)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-    theme=shinytheme('simplex'),
+    theme = shinytheme('simplex'),
     
     # Application title
     titlePanel("Capitalisn't: Podcast performance"),
@@ -49,20 +49,20 @@ shinyUI(fluidPage(
             title = "Downloads",
             tags$h1("Cumulative Daily Downloads"),
             fluidRow(
-                column(10,
+                column(9,
                     echarts4rOutput(
                         "downloadsPlot",
-                        width = "100%", 
+                        width = "100%",
                         height = "600px"
                     )
                 ),
-                column(2,
+                column(3,
                     tags$h3("Select Episodes:"),
                     tags$p(downloads_select_explainer),
                     selectInput(
                         "episodeSelectize",
+                        width = "100%",
                         label = "",
-                        # "Select Episodes:",
                         choices = episode_titles,
                         selected = default_selection,
                         multiple = TRUE
@@ -91,8 +91,6 @@ shinyUI(fluidPage(
                 "completionRatePlot",
                 width = "100%",
                 height = "3000px"
-                # width = "100%",
-                # height = "500px"
             )
         ),
         tabPanel(

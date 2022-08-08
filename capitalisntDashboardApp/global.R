@@ -19,21 +19,35 @@ local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.c
 path_prepend = '../'
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
+
+discrete_palette <- c(
+    "#7fc97f",
+    "#beaed4",
+    "#fdc086",
+    "#ffff99",
+    "#386cb0",
+    "#f0027f",
+    "#bf5b17",
+    "#666666"
+)
+
+downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent episodse are shown. Epsidoes are listed by release date with the most releases being shown first."
+
 # Define server logic required to draw a histogram
 #### DATA PROCESSING
 for (file in local_files) {
-    if (str_detect(file, 'episodes_downloads')){
+    if (str_detect(file, "episodes_downloads")){
         downloads_path <- file
-    } else if (str_detect(file, 'podcast_listening_methods')) {
+    } else if (str_detect(file, "podcast_listening_methods")) {
         podcast_platforms <- file
-    } else if (str_detect(file, 'episodes_listening_methods')) {
+    } else if (str_detect(file, "episodes_listening_methods")) {
         episode_platforms <- file
-    } else if (str_detect(file, 'episodes_completion')) {
+    } else if (str_detect(file, "episodes_completion")) {
         completion_rate <- file
     }
 }
-downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
-        mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
+downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep = "")) %>%
+        mutate(interval = as_date(interval, format="%Y-%m-%d"))%>%
         arrange(interval) %>%
         group_by(episode_id) %>%
         mutate(days_since_release=row_number(),
@@ -41,10 +55,10 @@ downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
                release_date = min(interval),
                most_recent_date = max(interval),
                label_text = ifelse(interval == most_recent_date,
-                                   paste(release_date, '--', substr(title, 1, 35)),
+                                   paste(release_date, "--", substr(title, 1, 35)),
                                    NA),
                label_text = ifelse(str_length(label_text) > 45,
-                                   paste0(label_text, '...', sep=''),
+                                   paste0(label_text, "...", sep = ""),
                                    label_text)
                ) %>%
         ungroup() %>%

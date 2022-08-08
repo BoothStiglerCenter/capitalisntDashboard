@@ -32,21 +32,16 @@ shinyServer(function(input, output) {
    #### DOWNLOADS TAB #####
    ################################################
 
-    testReactive <- reactive({
+    selectEpisodesReactive <- reactive({
         downloads_data %>%
             filter(title %in% input$episodeSelectize)
-        # input$episodeSelectize
-        # print(input$episodeSelectize)
     })
 
 
 
    ## Cumulative downloads chart
     output$downloadsPlot <- renderEcharts4r({
-        # downloads_data %>%
-        #     filter(title %in% input$Selectize) %>%
-        testReactive() %>%
-            # downloads_data %>%
+        selectEpisodesReactive() %>%
             e_charts(x = days_since_release, dispose = TRUE) %>%
             e_line(serie = cumulative_downloads, symbol = "none") %>%
             e_tooltip(trigger = "axis") %>%
@@ -110,10 +105,14 @@ shinyServer(function(input, output) {
                     completion_bullet_range = colDef(
                         name = "Completion rate:",
                         ### This function needs to be modified with actual completion-rate data.
-                        ### This will also require formatting the sparkline tooltip
                         ### See https://omnipotent.net/jquery.sparkline/#tooltips for documentation
                         cell = function(comp_value) {
-                            sparkline(comp_value, type = "bullet")
+                            sparkline(
+                                comp_value,
+                                type = "bullet",
+                                width = "300px",
+                                disableTooltips = "true"
+                            )
                         }
                     )
                 )
@@ -218,7 +217,7 @@ shinyServer(function(input, output) {
 
     output$calendarDateTopEps <- renderReactable({
 
-        print(class(calendarDateClicked()))
+        # print(class(calendarDateClicked()))
         downloads_data %>%
             filter(interval == calendarDateClicked()) %>%
             select(title, downloads_total) %>%
