@@ -17,7 +17,7 @@ library(reactable)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-    theme=shinytheme('simplex'),
+    theme = shinytheme('simplex'),
     
     # Application title
     titlePanel("Capitalisn't: Podcast performance"),
@@ -37,7 +37,7 @@ shinyUI(fluidPage(
                         width = "100%",
                         height = "600px"
                     ),
-                ),                
+                ),
                 column(4,
                     reactableOutput(
                         "calendarDateTopEps"
@@ -47,18 +47,22 @@ shinyUI(fluidPage(
         ),
         tabPanel(
             title = "Downloads",
+            tags$h1("Cumulative Daily Downloads"),
             fluidRow(
-                column(10,
+                column(9,
                     echarts4rOutput(
                         "downloadsPlot",
-                        width = "100%", 
+                        width = "100%",
                         height = "600px"
                     )
                 ),
-                column(2,
+                column(3,
+                    tags$h3("Select Episodes:"),
+                    tags$p(downloads_select_explainer),
                     selectInput(
                         "episodeSelectize",
-                        "Select Episodes:",
+                        width = "100%",
+                        label = "",
                         choices = episode_titles,
                         selected = default_selection,
                         multiple = TRUE
@@ -71,13 +75,24 @@ shinyUI(fluidPage(
         ),
         tabPanel(
             title='Platforms',
+            tags$h2("Podcast -- Most Popular Listening Platforms"),
             echarts4rOutput(
                 "platformShareBar"
             ),
+            tags$h2("Episode -- Most Popular Listening Platforms"),
             echarts4rOutput(
                 "episodePlatforms"
-            )
             ),
+            tags$em(platforms_caveat_text)
+            ),
+        tabPanel(
+            title = "Completion",
+            plotOutput(
+                "completionRatePlot",
+                width = "100%",
+                height = "3000px"
+            )
+        ),
         tabPanel(
             title='Other',
             selectInput(
@@ -87,7 +102,7 @@ shinyUI(fluidPage(
                 selected = c("setosa", "virginica"),
                 multiple = TRUE
             )
-        )
+        ),
     )
     
     
