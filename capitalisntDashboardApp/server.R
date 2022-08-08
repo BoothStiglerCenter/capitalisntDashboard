@@ -75,19 +75,20 @@ shinyServer(function(input, output) {
             fill(downloads_t_14, downloads_to_date, .direction = "downup") %>%
             distinct(title, .keep_all = TRUE) %>%
             select(
-                release_date.x,
+                release_date,
                 title,
                 downloads_to_date,
                 downloads_t_14,
-                avg_completion
+                avg_completion,
+                is_isnt
             ) %>%
             # This mutate needs to be modified with actual completion-rate data
-            mutate(completion_bullet_range = list(c(runif(1,min=0.5, max=0.7), avg_completion, 1))) %>%
+            mutate(completion_bullet_range = list(c(is_isnt, avg_completion, 1))) %>%
             reactable(
-                defaultSorted = "release_date.x",
+                defaultSorted = "release_date",
                 defaultSortOrder = "desc",
                 columns = list(
-                    release_date.x = colDef(
+                    release_date = colDef(
                         name = "Release Date"
                     ),
                     title = colDef(
