@@ -4,6 +4,7 @@ import os
 import re
 import json
 from datetime import datetime, timedelta
+from sympy import subsets
 from tqdm import tqdm
 
 ### READ IN API KEY
@@ -45,6 +46,7 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'keywords' : r'^episodes_keywords',
         'listening_methods' : r'^listening_methods',
         'geolocation' : r'^episodes_locations',
+        'geolocation_usStates' : r'^episodes_locations_USA',
         'completion' : r'^episodes_completion',
         'devices' : r'^device_class'
     }
@@ -405,6 +407,81 @@ def getGeoLocations(current_datetime):
 
     return locations_df
 
+def getGeoLocationsUSA(current_datetime):
+    get_us_states_params  = {
+        'podcast' : capitalisnt_podcast_id
+    } 
+
+    eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
+
+    if type(eps_df) == str:
+        print('Could not find an episodes_core.csv, Trying to re-download those')
+        eps_df = getAllEpisodes(current_datetime)
+    elif last_collected_datetime < current_datetime:
+        print('The episodes_core.csv may be out of date. Calling that API again')
+        eps_df = getAllEpisodes(current_datetime)
+
+    eps_df = eps_df[['episode_download_href', 'title', 'published_at', 'episode_id', 'season-ep']]
+
+
+    all_eps_episode_id_set = set(eps_df['episode_id'].unique().tolist())
+
+    states_df, states_last_collected_datetime = identifyExistingCollection(current_datetime, 'geolocation_usStates')
+    
+    if type(states_df) == str:
+        print('Could not find a US States .csv. Going to begin downloading all')
+        states_df = pd.DataFrame()
+        eps_to_collect_id_set = all_eps_episode_id_set
+    if default_date < states_last_collected_datetime:
+        print('Found an old US states downloads .csv dated to {}. Only calling API for more recent US states data'.format(states_last_collected_datetime))
+        subsetting_eps_ids = eps_df[['episode_id', 'published_at']]
+        subsetting_eps_ids.loc[:,'published_at'] = subsetting_eps_ids.loc[:, 'published_at'].apply(lambda x: datetime.fromisoformat(x).date())
+        subsetting_eps_ids.loc[:,'time_since_release'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: current_datetime - x)
+        subsetting_eps_ids.loc[:, 'time_since_last_collection'] = subsetting_eps_ids.loc[:,'published_at'].apply(lambda x: states_last_collected_datetime - x)
+
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,['time_since_release', 'time_since_last_collection']].apply(
+            lambda x: 1 if x.time_since_release < timedelta(31) else (1 if timedelta(31) <= x.time_since_release < timedelta(186) and timedelta(7) < x.time_since_last_collection else (1 if timedelta(186) <= x.time_since_release and timedelta(31) < x.time_since_last_collection else 0)), axis=1
+        )
+        subsetting_eps_ids.loc[:,'collection_binary'] = subsetting_eps_ids.loc[:,'time_since_last_collection'].apply(lambda x: 1 if timedelta(0) > x else 0)
+
+        subsetting_eps_ids = subsetting_eps_ids[subsetting_eps_ids['collection_binary']==1].copy()
+        eps_to_collect_id_set = set(subsetting_eps_ids['episode_id'].unique().tolist())
+
+
+    url = 'https://api.simplecast.com/analytics/location'
+    response = requests.get(
+        url,
+        headers=auth_headers,
+        params=get_us_states_params
+    )
+    us_states = response.json().get('states')
+    podcast_locations_us_states_df = pd.DataFrame.from_dict(us_states)
+    podcast_locations_us_states_df['date_collected'] = current_datetime
+    
+    podcast_locations_us_states_df.to_csv('us_states_podcast_locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+    get_us_states_params.pop('podcast')
+    for episode_id in tqdm(eps_to_collect_id_set, desc="Episode-level US States Geolocations: "):
+        get_us_states_params['episode'] = episode_id
+        get_us_states_params['country'] = 6252001
+
+        response = requests.get(
+            url,
+            headers=auth_headers,
+            params=get_us_states_params
+        )
+        us_states_ep = response.json().get('states')
+        episode_locations_us_states_df = pd.DataFrame.from_dict(us_states_ep)
+        episode_locations_us_states_df['date_collected'] = current_datetime
+        episode_locations_us_states_df['episode_id'] = episode_id
+
+        states_df = pd.concat([states_df, episode_locations_us_states_df], ignore_index=True)
+
+    states_df.to_csv('us_states_episode_locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+
+
+    return states_df
+
 def getEpCompletionRate(current_datetime):
 
     eps_df, last_collection_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
@@ -486,6 +563,7 @@ def fileCleanup():
         'episodes_keywords' : [],
         'episodes_listening_methods' : [],
         'episodes_locations' : [],
+        'episodes_locations_USA' : [],
         'podcast_device_class' : [],
         'podcast_listening_methods' : [],
         'podcast_locations' : []
@@ -530,4 +608,5 @@ def fileCleanup():
 # getGeoLocations(today)
 # getEpCompletionRate(today)
 # getDeviceClass(today)
+getGeoLocationsUSA(today)
 fileCleanup()
