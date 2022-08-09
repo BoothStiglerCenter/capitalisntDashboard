@@ -24,57 +24,56 @@ default_date = datetime.strptime('2000-01-01', date_format).date()
 state_ids =[
     4896861, # Illinois
     5332921, # California
+    5128638, # New York
+    4736286, # Texas
+    6254926, # Massachusetts
+    6254927, # Pennsylvania
+    4138106, # District of Columbia
+    6254928, # Virginia
+    5101760, # New Jersey
+    5815135, # Washington
+    4155751, # Florida
+    4361885, # Maryland
+    4197000, # Georgia
+    4482348, # North Carolina
+    5165418, # Ohio
+    5001836, # Michigan
+    5037779, # Minnesota
+    4831725, # Connecticut
+    5417618, # Colorado
+    4398678, # Missouri
+    5744337, # Oregon
+    4921868, # Indiana
+    5279468, # Wisconsin
+    4662168, # Tennessee
+    5551752, # Arizona
+    5549030, # Utah
+    6254925, # Kentucky
+    4862182, # Iowa
+    4597040, # South Carolina
+    5509151, # Nevada
+    5090174, # New Hampshire
+    4273857, # Kansas
+    5242283, # Vermont
+    4544379, # Oklahoma
+    4829764, # Alabama
+    5073708, # Nebraska
+    4971068, # Maine
+    5481136, # New Mexico
+    4142224, # Delaware
+    5224323, # Rhode Island
+    5855797, # Hawaii
+    4331987, # Louisiana
+    4099753, # Arkansas
+    5667009, # Montana
+    5596512, # Idaho
+    5843591, # Wyoming
+    4826850, # West Virginia
+    4436296, # Mississippi
+    5769223, # South Dakota
+    5879092, # Alaska
+    5690763 # North Dakota
 ]
-#     5128638, # New York
-#     4736286, # Texas
-#     6254926, # Massachusetts
-#     6254927, # Pennsylvania
-#     4138106, # District of Columbia
-#     6254928, # Virginia
-#     5101760, # New Jersey
-#     5815135, # Washington
-#     4155751, # Florida
-#     4361885, # Maryland
-#     4197000, # Georgia
-#     4482348, # North Carolina
-#     5165418, # Ohio
-#     5001836, # Michigan
-#     5037779, # Minnesota
-#     4831725, # Connecticut
-#     5417618, # Colorado
-#     4398678, # Missouri
-#     5744337, # Oregon
-#     4921868, # Indiana
-#     5279468, # Wisconsin
-#     4662168, # Tennessee
-#     5551752, # Arizona
-#     5549030, # Utah
-#     6254925, # Kentucky
-#     4862182, # Iowa
-#     4597040, # South Carolina
-#     5509151, # Nevada
-#     5090174, # New Hampshire
-#     4273857, # Kansas
-#     5242283, # Vermont
-#     4544379, # Oklahoma
-#     4829764, # Alabama
-#     5073708, # Nebraska
-#     4971068, # Maine
-#     5481136, # New Mexico
-#     4142224, # Delaware
-#     5224323, # Rhode Island
-#     5855797, # Hawaii
-#     4331987, # Louisiana
-#     4099753, # Arkansas
-#     5667009, # Montana
-#     5596512, # Idaho
-#     5843591, # Wyoming
-#     4826850, # West Virginia
-#     4436296, # Mississippi
-#     5769223, # South Dakota
-#     5879092, # Alaska
-#     5690763 # North Dakota
-# ]
 
 
 class MismatchError(Exception):
@@ -540,9 +539,7 @@ def getGeoLocationsUSA(current_datetime):
     return states_df
 
 def getGeoLocationsUSCities(current_datetime):
-    get_us_cities_params = {
-        'podcast' : capitalisnt_podcast_id
-    }
+    get_us_cities_params = {}
 
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
     
@@ -562,17 +559,16 @@ def getGeoLocationsUSCities(current_datetime):
 
     if type(cities_df) == str:
         print('Could not find a US cities .csv. Going to begin downloading all')
-        cities_df = pd.DataFrame()
+        cities_df = pd.DataFrame(columns=['city_name', 'city_id', 'state_id', 'episode_id'])
+        cities_df = cities_df.astype('object')
+ 
+
     if default_date < states_last_collected_datetime:
         print('Found an old US cities downloads .csv dated to {}. Still have to call for all episodes because API only returns at-present cross-sectional data. We do this to generate the time-series our selves.')
 
     eps_to_collect_id_set = all_eps_episode_id_set
 
-    us_cities = response.json().get('cities')
-    podcast_locations_us_cities_df = pd.DataFrame.from_dict(us_cities)
-    podcast_locations_us_cities_df['date_collected'] = current_datetime
-
-    get_us_cities_params.pop('podcast')
+    url = 'https://api.simplecast.com/analytics/location'
     episode_locations_us_cities_df = pd.DataFrame()
 
     for episode_id in tqdm(eps_to_collect_id_set, desc="Episode-level US Cities Geolocations: "):
@@ -606,7 +602,7 @@ def getGeoLocationsUSCities(current_datetime):
     })
 
     episode_locations_us_cities_wide_df = episode_locations_us_cities_df.pivot(
-        index = ['city_name', 'city_id', 'state_id', 'episode_id', 'downloads_total', 'date_collected'],
+        index = ['city_name', 'city_id', 'state_id', 'episode_id', 'downloads_total'],
         columns = 'date_collected',
         values = 'downloads_total'
     )
@@ -617,8 +613,8 @@ def getGeoLocationsUSCities(current_datetime):
         on = ['city_name', 'city_id', 'state_id', 'episode_id']
     )
 
-    ### The index=True setting is ABSOLUTELY NECESSARY for this function to work appropariately (to generate a wide output .csv that can be appended to in the future.)
-    cities_df.to_csv('us_cities_episode_locations-{}.csv'.format(current_datetime), index=True, encoding='utf-8')
+    ### The index=True setting is ABSOLUTELY NECESSARY for this function to work appropriately (to generate a wide output .csv that can be appended to in the future.)
+    cities_df.to_csv('us_cities_episode_locations-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
 
     return cities_df
 
