@@ -4,7 +4,6 @@ import os
 import re
 import json
 from datetime import datetime, timedelta
-from sympy import subsets
 from tqdm import tqdm
 
 ### READ IN API KEY
@@ -100,10 +99,10 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
         'keywords' : r'^episodes_keywords',
         'listening_methods' : r'^listening_methods',
         'geolocation' : r'^episodes_locations',
-        'geolocation_usStates' : r'^episodes_locations_USA',
-        'geolocation_usCities' : r'^episodes_locations_US_CITIES',
+        'geolocation_usStates' : r'^us_states_episode_locations',
+        'geolocation_usCities' : r'^us_cities_episode_locations',
         'completion' : r'^episodes_completion',
-        'devices' : r'^device_class'
+        'devices' : r'^podcast_device_class'
     }
  
     
@@ -618,9 +617,6 @@ def getGeoLocationsUSCities(current_datetime):
 
     return cities_df
 
-
-
-
 def getEpCompletionRate(current_datetime):
 
     eps_df, last_collection_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
@@ -702,11 +698,13 @@ def fileCleanup():
         'episodes_keywords' : [],
         'episodes_listening_methods' : [],
         'episodes_locations' : [],
-        'episodes_locations_USA' : [],
-        'episodes_locations_US_CITIES' : [],
+        'us_states_episode_locations' : [],
+        'us_states_podcast_locations' : [],
+        'us_cities_episode_locations' : [],
         'podcast_device_class' : [],
         'podcast_listening_methods' : [],
-        'podcast_locations' : []
+        'podcast_locations' : [],
+        'is_isnt_completion_rates' : [],
     }
 
 
@@ -734,7 +732,8 @@ def fileCleanup():
             # print(max([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed]))
             file_to_remove_path = dirlist[position_in_directory]
             os.remove(file_to_remove_path)
-            type_files_listed.remove((position_in_directory, oldest_date))
+            print('\t GOING TO REMOVE: {}'.format((position_in_directory, datetime.strftime(oldest_date, date_format))))
+            type_files_listed.remove((position_in_directory, datetime.strftime(oldest_date, date_format)))
 
 
     return dirdict
@@ -749,5 +748,5 @@ def fileCleanup():
 # getEpCompletionRate(today)
 # getDeviceClass(today)
 # getGeoLocationsUSA(today)
-getGeoLocationsUSCities(today)
+# getGeoLocationsUSCities(today)
 fileCleanup()
