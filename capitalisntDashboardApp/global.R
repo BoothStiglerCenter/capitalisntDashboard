@@ -1,17 +1,14 @@
-
-library(shiny)
-library(shinythemes)
 library(shiny)
 library(shinythemes)
 library(tidyverse)
 library(reactable)
-library(ggiraph)
-library(ggrepel)
 library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
 library(countrycode)
+library(cyphr)
+library(sodium)
 
 `%notin%` <- Negate(`%in%`)
 
@@ -28,9 +25,9 @@ for (file in local_files) {
         podcast_platforms <- file
     } else if (str_detect(file, 'episodes_listening_methods')) {
         episode_platforms <- file
-    } else if (str_detect(file, 'podcast_locations')) {
+    } else if (str_detect(file, '^podcast_locations')) {
         podcast_locations <- file
-    } else if (str_detect(file, 'episode_locations')) {
+    } else if (str_detect(file, '^episodes_locations')) {
         episode_locations <- file
     }
 }

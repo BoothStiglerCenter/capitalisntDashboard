@@ -1,9 +1,10 @@
 ### VERY IMPORTANT ###
 ### MUST IGNORE API KEYS ###
-
 env_keys.json
 .Renviron
+localDevTools.R
 
 
 ### Ignore all .csv files for the time being
 **/*.csv
+.httr-oauth
