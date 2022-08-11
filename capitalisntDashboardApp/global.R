@@ -46,7 +46,7 @@ print(list.files())
 local_files <- list.files()
 
 for (file in local_files) {
-    if (str_detect(file, "episodes_downloads")){
+    if (str_detect(file, "episodes_downloads")) {
         downloads_path <- file
         print(paste("downloads_path path is : ", downloads_path))
     } else if (str_detect(file, "podcast_listening_methods")) {
@@ -61,6 +61,8 @@ for (file in local_files) {
     } else if (str_detect(file, "^episodes_locations")) {
         episode_locations <- file
         print(paste("episode_locations path is : ", episode_locations))
+    } else if (str_detect(file, "is_isnt_completion_rates")) {
+        is_isnt_path <- file
     }
 }
 
@@ -156,7 +158,7 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
         categories = ifelse(
             name %notin% unique(pod_platforms_data$name),
             "other",
-            'unique'
+            "unique"
         )
     ) %>%
     group_by(episode_id) %>%
@@ -205,7 +207,7 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
 podcast_locations_data <- read_csv(paste0(path_prepend, podcast_locations, sep=""))
 
 country_names <- read_csv(paste0(path_prepend, 'simplecast_countries.csv')) %>%
-    rename('name' = 'simplecast_countries')
+    rename("name" = "simplecast_countries")
 
 podcast_locations_data <- podcast_locations_data %>%
     left_join(country_names, by = "name")
@@ -216,23 +218,17 @@ podcast_locations_data <- podcast_locations_data %>%
 platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is available. Time-series is only available with manual interval-timed data-collection."
 
 
-# completion_rate_data <- read_csv(paste0(path_prepend, completion_rate, sep = "")) %>%
-#     select(id, avg_completion, date_collected) %>%
-#     left_join(episode_title_id, by = c("id" = "episode_id")) %>%
-#     select(title, id, avg_completion, date_collected, release_date)
-
-completion_rate_data <- read_csv(paste0(path_prepend, is_isnt, sep = "")) %>%
+completion_rate_data <- read_csv(paste0(path_prepend, is_isnt_path, sep = "")) %>%
     select("Episode Title", "Average Consumption", "Total Length", "When Is/Isn't?", "Release Date") %>%
     rename(
-        'title' = 'Episode Title',
-        'avg_completion' = 'Average Consumption',
-        'is_isnt' = "When Is/Isn't?",
-        'run_time' = "Total Length",
+        "title" = "Episode Title",
+        "avg_completion" = "Average Consumption",
+        "is_isnt" = "When Is/Isn't?",
+        "srun_time" = "Total Length",
     ) %>%
     mutate(
         `Release Date` = as.Date(`Release Date`, "%m/%d/%Y"),
-        is_isnt = ifelse(is_isnt == 'N/A', 0, is_isnt),
+        is_isnt = ifelse(is_isnt == "N/A", 0, is_isnt),
         is_isnt = as.numeric(is_isnt))
         
-print('REACHED THE BOTTOM OF `global.R`')
-
+print("REACHED THE BOTTOM OF `global.R`")
