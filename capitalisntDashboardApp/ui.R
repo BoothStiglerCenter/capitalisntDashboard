@@ -74,6 +74,12 @@ shinyUI(fluidPage(
             )
         ),
         tabPanel(
+            title = "Geography",
+            echarts4rOutput(
+                "globalListeners"
+            )
+        ),
+        tabPanel(
             title='Platforms',
             tags$h2("Podcast -- Most Popular Listening Platforms"),
             echarts4rOutput(

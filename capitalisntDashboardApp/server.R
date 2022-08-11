@@ -24,10 +24,7 @@ local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.c
 # Define server logic required to draw a histogram
 #### DATA PROCESSING
 
-shinyServer(function(input, output) {
-    # downloads_path <- ifelse(str_match(local_files, 'episodes_downloads'), 1, NA)
-   
-   
+shinyServer(function(input, output) {   
    ################################################
    #### DOWNLOADS TAB #####
    ################################################
@@ -36,8 +33,6 @@ shinyServer(function(input, output) {
         downloads_data %>%
             filter(title %in% input$episodeSelectize)
     })
-
-
 
    ## Cumulative downloads chart
     output$downloadsPlot <- renderEcharts4r({
@@ -124,6 +119,26 @@ shinyServer(function(input, output) {
         input$episodeSelectize
     })
 
+    ################################################
+    #### GEOGRAPHY/MAPS TAB #####
+    ################################################
+    output$globalListeners <- renderEcharts4r({
+        podcast_locations_data %>%
+            e_charts(country.name.en) %>%
+            e_map(downloads_total) %>%
+            e_visual_map(downloads_total) %>%
+            e_datazoom()
+
+
+    })
+
+
+
+
+    ################################################
+    #### PLATFORMS TAB #####
+    ################################################
+
     output$platformShareBar <- renderEcharts4r({
         pod_platforms_data %>%
             e_chart(x = name) %>%
@@ -166,6 +181,22 @@ shinyServer(function(input, output) {
             e_color(discrete_palette)
     })
 
+    ep_platforms_data_plat_selector <- reactive({
+        # print('in episode selector')
+        # Select only the "clicked bar".
+        # If thing has been clicked yet, return all the bars
+        if (is.null(input$platformShareBar_clicked_data)) {
+            unique(ep_platforms_data$name)
+        } else {
+            str_match(input$platformShareBar_clicked_data[1], '"(.*?)"')[2]
+        }
+    })
+
+
+
+    ################################################
+    #### ABOUT/HOME TAB #####
+    ################################################
 
 
     output$calendarPlot <- renderEcharts4r({
@@ -189,6 +220,7 @@ shinyServer(function(input, output) {
     })
 
     calendarDateClicked <- reactive({
+
         # print('selecting a day')
         if (is.null(input$calendarPlot_clicked_data)){
             # print('today is')
@@ -205,8 +237,8 @@ shinyServer(function(input, output) {
             } else {
                 # We are between Friday and Sunday (inclusive)
                 for (i in 1:3){
-                    # print(wday(today) - days(1))
-                    if (wday(today - days(i)) == 4){
+                    print(wday(today) - days(1))
+                    if (wday(today - days(1)) == 4) {
                         today
                     }
                 }
@@ -217,7 +249,6 @@ shinyServer(function(input, output) {
     })
 
     output$calendarDateTopEps <- renderReactable({
-
         # print(class(calendarDateClicked()))
         downloads_data %>%
             filter(interval == calendarDateClicked()) %>%
@@ -294,6 +325,7 @@ shinyServer(function(input, output) {
             # ggtitle("Share of Episode Completed") +
             theme_minimal()
     })
+
 
 
 

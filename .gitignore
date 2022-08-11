@@ -1,8 +1,11 @@
 ### VERY IMPORTANT ###
-### MUST IGNORE API KEYS ###
-
+### MUST IGNORE API KEYS  AND TOKENS###
 env_keys.json
+.Renviron
+.httr-oauth
+capitalisntDashboardApp/drop_token_rds_decrypt.rds
 
+localDevTools.R
 
 ### Ignore all .csv files for the time being
 **/*.csv

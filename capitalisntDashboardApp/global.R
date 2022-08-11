@@ -1,24 +1,75 @@
-
-library(shiny)
-library(shinythemes)
 library(shiny)
 library(shinythemes)
 library(tidyverse)
 library(reactable)
-library(ggiraph)
-library(ggrepel)
 library(scales)
 library(lubridate)
 library(echarts4r)
 library(reactable)
+library(countrycode)
+library(rdrop2)
+library(cyphr)
+library(sodium)
+library(markdown)
 library(sparkline)
+
 
 `%notin%` <- Negate(`%in%`)
 
-local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
-path_prepend = '../'
+##### For running Shiny app locally (runApp())
+# local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
+# path_prepend = '../'
+
+##### For running code chunks in terminal locally
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
+
+
+##### For running with the dropbox data
+drop_token <- readRDS("drop_token_rds_decrypt.rds")
+# path_prepend <- "capitalisntDashboardData/"
+path_prepend <- ''
+dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
+    select(path_lower) %>%
+    pull()
+print(dropbox_files)
+
+
+for (dfile in dropbox_files) {
+    drop_download(
+        dfile,
+        overwrite = TRUE,
+        dtoken = drop_token
+    )
+}
+print(list.files())
+local_files <- list.files()
+
+for (file in local_files) {
+    if (str_detect(file, "episodes_downloads")){
+        downloads_path <- file
+        print(paste("downloads_path path is : ", downloads_path))
+    } else if (str_detect(file, "podcast_listening_methods")) {
+        podcast_platforms <- file
+        print(paste("podcast_platforms path is : ", podcast_platforms))
+    } else if (str_detect(file, "episodes_listening_methods")) {
+        episode_platforms <- file
+        print(paste("episode_platforms path is : ", episode_platforms))
+    } else if (str_detect(file, "^podcast_locations")) {
+        podcast_locations <- file
+        print(paste("podcast_locations path is : ", podcast_locations))
+    } else if (str_detect(file, "^episodes_locations")) {
+        episode_locations <- file
+        print(paste("episode_locations path is : ", episode_locations))
+    }
+}
+
+
+
+################################################
+#### DOWNLOADS TAB ##### DATA ####
+################################################
+#### Also generated Calendar data ####
 
 discrete_palette <- c(
     "#7fc97f",
@@ -33,23 +84,8 @@ discrete_palette <- c(
 
 downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent episodse are shown. Epsidoes are listed by release date with the most releases being shown first."
 
-# Define server logic required to draw a histogram
-#### DATA PROCESSING
-for (file in local_files) {
-    if (str_detect(file, "episodes_downloads")){
-        downloads_path <- file
-    } else if (str_detect(file, "podcast_listening_methods")) {
-        podcast_platforms <- file
-    } else if (str_detect(file, "episodes_listening_methods")) {
-        episode_platforms <- file
-    } else if (str_detect(file, "episodes_completion")) {
-        completion_rate <- file
-    } else if (str_detect(file, 'is_isnt_completion_rates')) {
-        is_isnt <- file
-    }
-}
-downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep = "")) %>%
-        mutate(interval = as_date(interval, format="%Y-%m-%d"))%>%
+downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
+        mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
         arrange(interval) %>%
         group_by(episode_id) %>%
         mutate(days_since_release=row_number(),
@@ -74,8 +110,6 @@ episode_title_id <- downloads_data %>%
     select(episode_id, title, release_date) %>%
     distinct(episode_id, .keep_all = TRUE)
 
-
-
 episode_titles <- downloads_data %>%
     distinct(release_date, .keep_all = TRUE) %>%
     arrange(desc(release_date)) %>%
@@ -88,6 +122,10 @@ default_selection <- downloads_data %>%
         slice_max(release_date, n=5) %>%
         select(title) %>%
         pull()
+
+################################################
+#### PLATFORMS TAB ##### DATA ####
+################################################
 
 pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) %>%
     mutate(
@@ -110,6 +148,7 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
         stack_group = 1
     )
 pod_platforms_data$color <- discrete_palette
+
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -155,6 +194,25 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
     group_by(episode_id) %>%
     mutate(rank = row_number())
 
+
+
+################################################
+#### GEOGRAPHY/MAPS TAB ##### DATA ####
+################################################
+
+### echarts4r likes to use 'country.name.en' (see countrycode())
+
+podcast_locations_data <- read_csv(paste0(path_prepend, podcast_locations, sep=""))
+
+country_names <- read_csv(paste0(path_prepend, 'simplecast_countries.csv')) %>%
+    rename('name' = 'simplecast_countries')
+
+podcast_locations_data <- podcast_locations_data %>%
+    left_join(country_names, by = "name")
+
+
+
+
 platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is available. Time-series is only available with manual interval-timed data-collection."
 
 
@@ -175,3 +233,6 @@ completion_rate_data <- read_csv(paste0(path_prepend, is_isnt, sep = "")) %>%
         `Release Date` = as.Date(`Release Date`, "%m/%d/%Y"),
         is_isnt = ifelse(is_isnt == 'N/A', 0, is_isnt),
         is_isnt = as.numeric(is_isnt))
+        
+print('REACHED THE BOTTOM OF `global.R`')
+
