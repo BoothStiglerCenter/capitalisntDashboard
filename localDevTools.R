@@ -47,3 +47,4 @@ custom_drop_auth <- function(new_user = FALSE, key = "mmhfsybffdom42w", secret =
 drop_token <- custom_drop_auth()
 
 encrypt(saveRDS(drop_token, "drop_token_rds.rds"), sodium_key_for_cyphr)
+# saveRDS(drop_token, "drop_token_rds_decrypt.rds")

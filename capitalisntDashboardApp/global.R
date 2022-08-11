@@ -7,30 +7,62 @@ library(lubridate)
 library(echarts4r)
 library(reactable)
 library(countrycode)
+library(rdrop2)
 library(cyphr)
 library(sodium)
+library(markdown)
 
 `%notin%` <- Negate(`%in%`)
 
-local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
-path_prepend = '../'
+##### For running Shiny app locally (runApp())
+# local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
+# path_prepend = '../'
+
+##### For running code chunks in terminal locally
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
-# Define server logic required to draw a histogram
-#### DATA PROCESSING
+
+##### For running with the dropbox data
+drop_token <- readRDS("drop_token_rds_decrypt.rds")
+# path_prepend <- "capitalisntDashboardData/"
+path_prepend <- ''
+dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
+    select(path_lower) %>%
+    pull()
+print(dropbox_files)
+
+
+for (dfile in dropbox_files) {
+    drop_download(
+        dfile,
+        overwrite = TRUE,
+        dtoken = drop_token
+    )
+}
+print(list.files())
+local_files <- list.files()
+
+
+#### DATA PROCESSING FOR LCOCAL DEVELOPMENT
 for (file in local_files) {
-    if (str_detect(file, 'episodes_downloads')){
+    if (str_detect(file, "episodes_downloads")){
         downloads_path <- file
-    } else if (str_detect(file, 'podcast_listening_methods')) {
+        print(paste("downloads_path path is : ", downloads_path))
+    } else if (str_detect(file, "podcast_listening_methods")) {
         podcast_platforms <- file
-    } else if (str_detect(file, 'episodes_listening_methods')) {
+        print(paste("podcast_platforms path is : ", podcast_platforms))
+    } else if (str_detect(file, "episodes_listening_methods")) {
         episode_platforms <- file
-    } else if (str_detect(file, '^podcast_locations')) {
+        print(paste("episode_platforms path is : ", episode_platforms))
+    } else if (str_detect(file, "^podcast_locations")) {
         podcast_locations <- file
-    } else if (str_detect(file, '^episodes_locations')) {
+        print(paste("podcast_locations path is : ", podcast_locations))
+    } else if (str_detect(file, "^episodes_locations")) {
         episode_locations <- file
+        print(paste("episode_locations path is : ", episode_locations))
     }
 }
+
 
 
 ################################################
@@ -160,3 +192,6 @@ country_names <- read_csv(paste0(path_prepend, 'simplecast_countries.csv')) %>%
 
 podcast_locations_data <- podcast_locations_data %>%
     left_join(country_names, by = "name")
+
+
+print('REACHED THE BOTTOM OF `global.R`')
