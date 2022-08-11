@@ -11,6 +11,8 @@ library(rdrop2)
 library(cyphr)
 library(sodium)
 library(markdown)
+library(sparkline)
+
 
 `%notin%` <- Negate(`%in%`)
 
@@ -21,6 +23,7 @@ library(markdown)
 ##### For running code chunks in terminal locally
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = ''
+
 
 ##### For running with the dropbox data
 drop_token <- readRDS("drop_token_rds_decrypt.rds")
@@ -42,8 +45,6 @@ for (dfile in dropbox_files) {
 print(list.files())
 local_files <- list.files()
 
-
-#### DATA PROCESSING FOR LCOCAL DEVELOPMENT
 for (file in local_files) {
     if (str_detect(file, "episodes_downloads")){
         downloads_path <- file
@@ -70,6 +71,19 @@ for (file in local_files) {
 ################################################
 #### Also generated Calendar data ####
 
+discrete_palette <- c(
+    "#7fc97f",
+    "#beaed4",
+    "#fdc086",
+    "#ffff99",
+    "#386cb0",
+    "#f0027f",
+    "#bf5b17",
+    "#666666"
+)
+
+downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent episodse are shown. Epsidoes are listed by release date with the most releases being shown first."
+
 downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
         mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
         arrange(interval) %>%
@@ -79,10 +93,10 @@ downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
                release_date = min(interval),
                most_recent_date = max(interval),
                label_text = ifelse(interval == most_recent_date,
-                                   paste(release_date, '--', substr(title, 1, 35)),
+                                   paste(release_date, "--", substr(title, 1, 35)),
                                    NA),
                label_text = ifelse(str_length(label_text) > 45,
-                                   paste0(label_text, '...', sep=''),
+                                   paste0(label_text, "...", sep = ""),
                                    label_text)
                ) %>%
         ungroup() %>%
@@ -133,6 +147,8 @@ pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) 
         downloads_percent = downloads_total / historical_pod_downloads_total,
         stack_group = 1
     )
+pod_platforms_data$color <- discrete_palette
+
 
 
 ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %>%
@@ -179,6 +195,7 @@ ep_platforms_data <- read_csv(paste0(path_prepend, episode_platforms, sep="")) %
     mutate(rank = row_number())
 
 
+
 ################################################
 #### GEOGRAPHY/MAPS TAB ##### DATA ####
 ################################################
@@ -194,4 +211,28 @@ podcast_locations_data <- podcast_locations_data %>%
     left_join(country_names, by = "name")
 
 
+
+
+platforms_caveat_text <- "Only present-moment, cross-sectional listening platform data is available. Time-series is only available with manual interval-timed data-collection."
+
+
+# completion_rate_data <- read_csv(paste0(path_prepend, completion_rate, sep = "")) %>%
+#     select(id, avg_completion, date_collected) %>%
+#     left_join(episode_title_id, by = c("id" = "episode_id")) %>%
+#     select(title, id, avg_completion, date_collected, release_date)
+
+completion_rate_data <- read_csv(paste0(path_prepend, is_isnt, sep = "")) %>%
+    select("Episode Title", "Average Consumption", "Total Length", "When Is/Isn't?", "Release Date") %>%
+    rename(
+        'title' = 'Episode Title',
+        'avg_completion' = 'Average Consumption',
+        'is_isnt' = "When Is/Isn't?",
+        'run_time' = "Total Length",
+    ) %>%
+    mutate(
+        `Release Date` = as.Date(`Release Date`, "%m/%d/%Y"),
+        is_isnt = ifelse(is_isnt == 'N/A', 0, is_isnt),
+        is_isnt = as.numeric(is_isnt))
+        
 print('REACHED THE BOTTOM OF `global.R`')
+
