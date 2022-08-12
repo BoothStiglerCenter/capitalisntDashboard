@@ -18,13 +18,11 @@ library(ggrepel)
 library(scales)
 library(lubridate)
 library(echarts4r)
-library(reactable)
 
-local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
-# Define server logic required to draw a histogram
+
 #### DATA PROCESSING
 
-shinyServer(function(input, output) {   
+shinyServer(function(input, output) {
    ################################################
    #### DOWNLOADS TAB #####
    ################################################
@@ -77,8 +75,9 @@ shinyServer(function(input, output) {
                 avg_completion,
                 is_isnt
             ) %>%
-            # This mutate needs to be modified with actual completion-rate data
-            mutate(completion_bullet_range = list(c(is_isnt, avg_completion, 1))) %>%
+            mutate(
+                completion_bullet_range = list(c(is_isnt, avg_completion, 1))
+            ) %>%
             reactable(
                 defaultSorted = "release_date",
                 defaultSortOrder = "desc",
@@ -98,10 +97,11 @@ shinyServer(function(input, output) {
                         format = colFormat(separators = TRUE)
                     ),
                     avg_completion = colDef(show = FALSE),
+                    is_isnt = colDef(show = FALSE),
                     completion_bullet_range = colDef(
                         name = "Completion rate:",
-                        ### This function needs to be modified with actual completion-rate data.
-                        ### See https://omnipotent.net/jquery.sparkline/#tooltips for documentation
+                        # See https://omnipotent.net/jquery.sparkline/#tooltips for docs
+                        # For the time being tooltips have been turned off.
                         cell = function(comp_value) {
                             sparkline(
                                 comp_value,
@@ -146,7 +146,7 @@ shinyServer(function(input, output) {
             e_legend(show = FALSE) %>%
             e_show_loading() %>%
             e_tooltip() %>%
-            e_add('itemStyle', color)
+            e_add("itemStyle", color)
     })
 
     output$episodePlatforms <- renderEcharts4r({
@@ -159,21 +159,21 @@ shinyServer(function(input, output) {
             arrange(release_date) %>%
             e_chart(x = title, dispose = FALSE) %>%
             e_bar(serie = `Apple Podcasts`,
-                stack = "stack", name = 'Apple Podcasts') %>%
+                stack = "stack", name = "Apple Podcasts") %>%
             e_bar(serie = `Spotify`,
-                stack = "stack", name = 'Spotify') %>%
+                stack = "stack", name = "Spotify") %>%
             e_bar(serie = `Overcast`,
-                stack = "stack", name = 'Overcast') %>%
+                stack = "stack", name = "Overcast") %>%
             e_bar(serie = `Podcast & Radio Addict`,
-                stack = "stack", name = 'Podcast & Radio Addict') %>%
+                stack = "stack", name = "Podcast & Radio Addict") %>%
             e_bar(serie = `Simplecast`,
-                stack = "stack", name = 'Simplecast') %>%
+                stack = "stack", name = "Simplecast") %>%
             e_bar(serie = `Pocket Casts`,
-                stack = "stack", name = 'Pocket Casts') %>%
+                stack = "stack", name = "Pocket Casts") %>%
             e_bar(serie = `Google Podcasts`,
-                stack = "stack", name = 'Google Podcasts') %>%
+                stack = "stack", name = "Google Podcasts") %>%
             e_bar(serie = `Other`,
-                stack = "stack", name = 'Other') %>%
+                stack = "stack", name = "Other") %>%
             e_legend(show = TRUE) %>%
             e_datazoom() %>%
             e_show_loading() %>%
@@ -221,31 +221,28 @@ shinyServer(function(input, output) {
 
     calendarDateClicked <- reactive({
 
-        # print('selecting a day')
+        # IF: no date has yet been clicked
         if (is.null(input$calendarPlot_clicked_data)){
-            # print('today is')
             today <- today()
-            most_recent_sunday <- floor_date(today, "week")
-            if (wday(today) == 4) {
-                # print('its a thursday!')
+            if (wday(today) -1 == 4) {
+                # Today is already a thursday (wday() weekday is adjusted by 1)
                 today
-            } else if (today - most_recent_sunday > 0){
-            # We are between Sunday and Thursday
-                # print('here1')
-                most_recent_thursday <- most_recent_sunday - days(4)
-                most_recent_thursday
             } else {
-                # We are between Friday and Sunday (inclusive)
-                for (i in 1:3){
-                    print(wday(today) - days(1))
-                    if (wday(today - days(1)) == 4) {
-                        today
-                    }
-                }
+                # Round down to the  most recent Thursday
+                floor_date(today, "week", 4)
             }
+        # ELSE: Return whatever date was clicked
         } else {
-            str_match(input$calendarPlot_clicked_data[1], '"(\\d{4}-\\d{2}-\\d{2})"')[2]
+            str_match(
+                input$calendarPlot_clicked_data[1],
+                '"(\\d{4}-\\d{2}-\\d{2})"'
+            )[2]
         }
+    })
+
+    output$calendarTableTitle <- renderText({
+        date <- calendarDateClicked()
+        paste("<h2>Top Daily Episodes: ", date, "</h2>", sep="")
     })
 
     output$calendarDateTopEps <- renderReactable({
@@ -264,7 +261,8 @@ shinyServer(function(input, output) {
                         name = "Daily Downloads",
                         format = colFormat(separators = TRUE)
                     )
-                )
+                ),
+                defaultPageSize = 8
             )
     })
 
@@ -280,7 +278,7 @@ shinyServer(function(input, output) {
 
     output$completionRatePlot <- renderPlot({
         ggplot(completion_rate_data %>%
-            rename('release_date' = "Release Date")) +
+            rename("release_date" = "Release Date")) +
             geom_segment(
                 aes(
                     x = 0,
@@ -304,13 +302,20 @@ shinyServer(function(input, output) {
                 color = "#4444af"
             ) +
             geom_point(
-                aes(x = avg_completion, y = release_date),
-                color = "orange",
+                aes(
+                    x = avg_completion,
+                    y = release_date,
+                    shape = "circle",
+                    color = "orange"
+                ),
                 size = 4) +
             geom_point(
-                aes(x = is_isnt, y = release_date),
-                color = "red",
-                shape = 15,
+                aes(
+                    x = is_isnt,
+                    y = release_date,
+                    shape = "square",
+                    color = "red"
+                ),
                 size = 4
             ) +
             geom_label(
@@ -321,9 +326,37 @@ shinyServer(function(input, output) {
                 ),
                 hjust = 1
             ) +
-            xlim(c(-0.25, 1)) +
-            # ggtitle("Share of Episode Completed") +
-            theme_minimal()
+            scale_color_manual(
+                breaks = c("orange", "red"),
+                values = c("orange", "red"),
+                labels = c("Avg. Completion", "Is/Isn't Begins")
+            ) +
+            scale_shape_manual(
+                breaks = c("circle", "square"),
+                values = c(16, 15),
+            ) +
+            guides(
+                color = guide_legend(
+                    title = element_blank(),
+                    override.aes = list(shape = c(16, 15))),
+                shape = "none"
+            ) + 
+            scale_x_continuous(
+                position = "top",
+                limits = c(-0.25, 1),
+                breaks = seq(0, 1, by = 0.5)
+            ) +
+            xlab("Completion rate:") +
+            theme_minimal() +
+            theme(
+                axis.title.x.top = element_text(size = 18, face = "bold"),
+                axis.text.x.top = element_text(size = 16),
+                panel.border = element_blank(),
+                legend.position = "top",
+                # legend.title = element_text(size = 18, face = "bold"),
+                legend.text = element_text(size = 16)
+            )
+
     })
 
 

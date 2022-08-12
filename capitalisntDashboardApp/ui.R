@@ -21,17 +21,22 @@ shinyUI(fluidPage(
     
     # Application title
     titlePanel("Capitalisn't: Podcast performance"),
-    
-    
+
     # Primary page/tabs layout structure
     tabsetPanel(
         tabPanel(
-            title='About',
-            includeMarkdown('about_panel.md'),
-            tags$h1(getwd()),
+            title = "About",
+            fluidRow(
+                column(6,
+                    includeMarkdown("about_panel.md"),
+                ),
+                column(6,
+                ),
+            ),
             hr(),
             fluidRow(
                 column(8,
+                    tags$h2("Podcast Daily Downloads:"),
                     echarts4rOutput(
                         "calendarPlot",
                         width = "100%",
@@ -39,12 +44,16 @@ shinyUI(fluidPage(
                     ),
                 ),
                 column(4,
+                    htmlOutput(
+                        "calendarTableTitle"
+                    ),
                     reactableOutput(
                         "calendarDateTopEps"
                     )
                 )
             )
         ),
+        # Downloads Tab
         tabPanel(
             title = "Downloads",
             tags$h1("Cumulative Daily Downloads"),
@@ -69,6 +78,8 @@ shinyUI(fluidPage(
                     )
                 )
             ),
+            tags$h2("Episode Details: "),
+            tags$p("This table contains details for episodes selected above. In the 'Completion Rate' column, the red marker indicates the begining of the Capitalis/isn't section. The dark blue bar indicates average completion rate."),
             reactableOutput(
                 "episodeDownloadsTable"
             )
@@ -80,12 +91,14 @@ shinyUI(fluidPage(
             )
         ),
         tabPanel(
-            title='Platforms',
+            title = "Platforms",
+            tags$p("Please be patient. The plot creation tool handles a large .csv file."),
             tags$h2("Podcast -- Most Popular Listening Platforms"),
             echarts4rOutput(
                 "platformShareBar"
             ),
             tags$h2("Episode -- Most Popular Listening Platforms"),
+            tags$p("Clicking on a platform in the legend allows for de/selection of specified platform(s)."),
             echarts4rOutput(
                 "episodePlatforms"
             ),
@@ -98,17 +111,7 @@ shinyUI(fluidPage(
                 width = "100%",
                 height = "3000px"
             )
-        ),
-        tabPanel(
-            title='Other',
-            selectInput(
-                "species_select",
-                "Select Species: ",
-                choices = unique(iris$Species),
-                selected = c("setosa", "virginica"),
-                multiple = TRUE
-            )
-        ),
+        )
     )
     
     

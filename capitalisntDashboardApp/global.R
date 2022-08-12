@@ -18,7 +18,7 @@ library(sparkline)
 
 ##### For running Shiny app locally (runApp())
 # local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
-# path_prepend = '../'
+# path_prepend = "../"
 
 ##### For running code chunks in terminal locally
 # local_files <- list.files(pattern = '(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
@@ -45,22 +45,27 @@ for (dfile in dropbox_files) {
 print(list.files())
 local_files <- list.files()
 
+
+
+
+#### File organization for local/hosted development. Never comment out
+print(local_files)
 for (file in local_files) {
     if (str_detect(file, "episodes_downloads")) {
         downloads_path <- file
-        print(paste("downloads_path path is : ", downloads_path))
+        print(paste("downloads_path path is: ", downloads_path))
     } else if (str_detect(file, "podcast_listening_methods")) {
         podcast_platforms <- file
-        print(paste("podcast_platforms path is : ", podcast_platforms))
+        print(paste("podcast_platforms path is: ", podcast_platforms))
     } else if (str_detect(file, "episodes_listening_methods")) {
         episode_platforms <- file
-        print(paste("episode_platforms path is : ", episode_platforms))
+        print(paste("episode_platforms path is: ", episode_platforms))
     } else if (str_detect(file, "^podcast_locations")) {
         podcast_locations <- file
-        print(paste("podcast_locations path is : ", podcast_locations))
+        print(paste("podcast_locations path is: ", podcast_locations))
     } else if (str_detect(file, "^episodes_locations")) {
         episode_locations <- file
-        print(paste("episode_locations path is : ", episode_locations))
+        print(paste("episode_locations path is: ", episode_locations))
     } else if (str_detect(file, "is_isnt_completion_rates")) {
         is_isnt_path <- file
     }
@@ -84,7 +89,7 @@ discrete_palette <- c(
     "#666666"
 )
 
-downloads_select_explainer <- "Click to select additional episodes to display. By default, the five most recent episodse are shown. Epsidoes are listed by release date with the most releases being shown first."
+downloads_select_explainer <- "Click to select additional episodes to display. Clicking on white=space allows for search by typing. Highlighted cards/episodes be deleted ot remove them from the plot. By default, the five most recent episodse are shown. Epsidoes are listed by release date with the most releases being shown first."
 
 downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
         mutate(interval = as_date(interval, format='%Y-%m-%d'))%>%
@@ -99,7 +104,11 @@ downloads_data <- read_csv(paste0(path_prepend, downloads_path, sep='')) %>%
                                    NA),
                label_text = ifelse(str_length(label_text) > 45,
                                    paste0(label_text, "...", sep = ""),
-                                   label_text)
+                                   label_text),
+                title = case_when(
+                    title == "Is Inflation The Fed’s Fault? + Uber Leaks" ~ "Is Inflation The Fed's Fault? + Uber Leaks",
+                    TRUE ~ title
+                )
                ) %>%
         ungroup() %>%
         arrange(desc(release_date)) %>%
@@ -230,5 +239,5 @@ completion_rate_data <- read_csv(paste0(path_prepend, is_isnt_path, sep = "")) %
         `Release Date` = as.Date(`Release Date`, "%m/%d/%Y"),
         is_isnt = ifelse(is_isnt == "N/A", 0, is_isnt),
         is_isnt = as.numeric(is_isnt))
-        
+
 print("REACHED THE BOTTOM OF `global.R`")

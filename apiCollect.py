@@ -16,10 +16,14 @@ auth_headers = {
 ### GLOBAL VARS OF INTEREST
 capitalisnt_podcast_id = '912f8fce-96d2-4583-92f5-2279c08e377a'
 today = datetime.now().date()
-files_in_dir = os.listdir()
+# files_in_dir = os.listdir()
+
 date_format = '%Y-%m-%d'
 date_pattern  = r'\d{4}-\d{2}-\d{2}'
 default_date = datetime.strptime('2000-01-01', date_format).date()
+def files_in_dir():
+    return os.listdir()
+
 state_ids =[
     4896861, # Illinois
     5332921, # California
@@ -110,8 +114,9 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
     # Sets the default last-collected date. If no files match the desired pattern, this is the date that's returned.
     last_collected_datetime = default_date
 
+    files_listed = files_in_dir()
 
-    for filename in files_in_dir:
+    for filename in files_listed:
         if re.search(pattern, filename):
             last_collected_datetime_string = re.search(date_pattern, filename)[0]
             last_collected_datetime = datetime.strptime(last_collected_datetime_string, date_format).date()
@@ -119,9 +124,9 @@ def identifyExistingCollection(current_datetime, type_csv_search_pattern):
 
     # If we've done some kind of collection before, load in the old one and pass the date it was last collected back to the function that called this. Otherwise, pass back the default date (2000/01/01) and note that we have never collected this type of df before.
     if default_date < last_collected_datetime: 
-        for i, filename in enumerate(files_in_dir):
+        for i, filename in enumerate(files_listed):
             if re.search(pattern, filename):
-                old_df_path = files_in_dir[i]
+                old_df_path = files_listed[i]
                 break
         collection = pd.read_csv(old_df_path)
     elif last_collected_datetime == default_date:
@@ -267,7 +272,7 @@ def getEpDownloads(current_datetime):
     eps_downloads_df = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
     print('trying to get new eps downloads')
 
-    eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), encoding='utf-8')
+    eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), index=False, encoding='utf-8')
 
     return eps_downloads_df
 
@@ -309,7 +314,7 @@ def getKeyWords(current_datetime):
         keywords_df = pd.concat([keywords_df, keywords_temp_df], ignore_index=True)
         
     keywords_df = keywords_df.drop_duplicates(subset=['episode_id', 'value'])
-    keywords_df.to_csv('episodes_keywords-{}.csv'.format(today), encoding='utf-8')
+    keywords_df.to_csv('episodes_keywords-{}.csv'.format(today), index=False, encoding='utf-8')
     return keywords_df
 
 def getListeningMethods(current_datetime):
@@ -741,12 +746,12 @@ def fileCleanup():
 
 
 
-# getEpDownloads(today)
-# getKeyWords(today)
-# getListeningMethods(today)
-# getGeoLocations(today)
-# getEpCompletionRate(today)
-# getDeviceClass(today)
-# getGeoLocationsUSA(today)
-getGeoLocationsUSCities(today)
+getEpDownloads(today)
+getKeyWords(today)
+getListeningMethods(today)
+getGeoLocations(today)
+getEpCompletionRate(today)
+getDeviceClass(today)
+getGeoLocationsUSA(today)
+# getGeoLocationsUSCities(today)
 # fileCleanup()
