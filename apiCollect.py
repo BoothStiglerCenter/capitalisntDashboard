@@ -748,5 +748,5 @@ def fileCleanup():
 # getEpCompletionRate(today)
 # getDeviceClass(today)
 # getGeoLocationsUSA(today)
-# getGeoLocationsUSCities(today)
-fileCleanup()
+getGeoLocationsUSCities(today)
+# fileCleanup()

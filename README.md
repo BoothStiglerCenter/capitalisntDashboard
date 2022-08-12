@@ -4,7 +4,7 @@
 This repo contains all of the files necessary to generate and run the *Capitalisn't* performance-tracking dashboard. This app should outlive me (Joshua) and should be modifiable for future investigations.
 
 
-## How to Use
+## How It Works
 The broad idea of this app is that the workflow works in three parts. The first collects data using the Simplecast API, and the second presents that data in an interactive format using Shiny. That Shiny app is then deployed to and hosted by shiny.io.
 
 
@@ -17,7 +17,7 @@ The broad idea of this app is that the workflow works in three parts. The first 
 │   ├── ui.R
 │   ├── drop_token_rds.rds
 ├── apiCollect.py
-├── localDevTools
+├── localDevTools.R
 ├── README.md
 ├── .Renviron
 └── .gitignore
@@ -63,6 +63,7 @@ After data collection is complete, all data processing and presentation is done 
 - `global.R`
   - All data reading and most standardized processing is done here.
   - Variables defined in this file are accessible in all files but any changes are not reflected in "hot-reloading" functions. That is, if changes are made in this file, the Shiny app must be completely re-started for the changes to be properly reflected in functionality.
+  - The deployed version of this file also handles decrypting a DropBox OAuth 2.0 authorization token.
 - `server.R`
   - This files defines most of the major plots/figures/tables etc.
   - This file takes advantage of the generic data-reading and pre-processing done in `global.R` and modifies those dataframes for specific uses/figures/tables etc.
@@ -73,6 +74,26 @@ After data collection is complete, all data processing and presentation is done 
 
 
 ### 3. Hosting
+At present the process of hosting is complicated because we are trying to do everything for free. The app itself is hosted in Shiny with Joshua's personal shiny account. This can be made an institutional account trivially.
+
+The deploying and hosting process is multi-step to ensure that no secret API or OAuth tokens are exposed *and* to allow for features to be continuously added to the dashboard by any number of developers. 
+
+**shinyapps.io**
+- shinyapps.io is the platform that hosts the Shiny App itself. Because we are using a free tier for hosting. Part of using the free tier of hosting is that there is limited up-time per month (1500 minutes/month). Additionally, each instance of the app runs with limited system resources (1GB of RAM and storage?). This means that most file storage and process should take place off-Shiny.
+- 
+
+**DropBox**
+- In order to streamline the Shiny process as much as possible (and syncing data collection with live presentation) files/data are collected on a local instance and then placed in a specific DropBox folder. 
+- This data-collection pipeline requires that the ShinyApp instance has an authenticated token to access to the DropBox folder. Since 2021, DropBox has only issued short-lifespan tokens that expire 4 hours after issuance. In order to get around this, we customize a function from `rdrop2`, a package to programatically access DropBox from R: (`drop_auth()`). The customized function is available in `localDevTools.R` and is called `custom_drop_auth()`. This function adds an extra parameter to the original function that requests a token that can auto-refresh itself. Authenticating this token requires human interaction/accessing a browser upon calling `custom_drop_auth()` so must be done locally. This token must then be passed to the Shiny instance.
+- This token allows anyone with access to it to have access to the Stigler center DropBox. Consequently, ensuring that other people on the internet cannot access it is very important. When `custom_drop_auth()` generates a token, it caches a version of the token in a hidden file called `.httr-oauth`. This file must be .gitignored by new developers. An explicit version of the token is encrypted and then saved by `localDevTools.R`. The encryption process is handled by a local passphrase that is also saved as a secret in GitHub actions. The encrypted token is then uploaded to GitHub so that it can be repackaged with every re-deployment of the app to Shiny.
+
+
+**GitHub Actions**
+- When a new feature branch is pulled into the liveProduction branch a GitHub action fires, executing a Docker file that deploys those new features/versions to the live ShinyApp.
+- The DockerFile is responsible for running a script that automatically deploys the contents of the updated liveProduction branch to shinyapps.io. It uses the `deployApp.R` script which itself reads various GitHub secrets to connect to, and then securely deploy the new app files to shinyapps.io
+- **IMPORTANT!!!** At present this file is responsible for token en/decryption. This process will eventually be moved to global.R
+- When a new version of the app is deploy to shinyapps.io, shinyapps.io clears the cache and removes the secret DropBox authentication token. That DropBox authentication token (now encrypted and saved inside the GitHub repo) must be deployed with the new version of dashboard.
+- In order to minimize the chance that this token is ever exposed to the internet, the .rds file is only decrypted on the shinyapps.io server/app instance. The symmetric en/decryption passphrase is stored as a GitHub secret and is passed to shinyapps.io as an environment variable. It is of critical importance that this passphrase is never uploaded to a website in an unecrypted fashion.
 
 
 ## Contact
