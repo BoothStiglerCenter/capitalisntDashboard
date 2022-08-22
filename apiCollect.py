@@ -195,6 +195,8 @@ def getAllEpisodes(current_datetime):
             raise MismatchError(len(df), expected_episodes)
 
         df.to_csv('episodes_core-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+        
+        fileCleanup()
         return df
     
     else:
@@ -223,6 +225,7 @@ def getAllEpisodes(current_datetime):
             raise MismatchError(len(df), expected_episodes)
         df.to_csv(episodes_core_out_path, index=False, encoding='utf-8')
 
+        fileCleanup()
         return df
 
 def getEpDownloads(current_datetime):
@@ -568,7 +571,7 @@ def getGeoLocationsUSCities(current_datetime):
  
 
     if default_date < states_last_collected_datetime:
-        print('Found an old US cities downloads .csv dated to {}. Still have to call for all episodes because API only returns at-present cross-sectional data. We do this to generate the time-series our selves.')
+        print('Found an old US cities downloads .csv dated to {}. Still have to call for all episodes because API only returns at-present cross-sectional data. We do this to generate the time-series our selves.'.format(current_datetime))
 
     eps_to_collect_id_set = all_eps_episode_id_set
 
@@ -746,12 +749,14 @@ def fileCleanup():
 
 
 
+
 getEpDownloads(today)
 getKeyWords(today)
 getListeningMethods(today)
 getGeoLocations(today)
 getEpCompletionRate(today)
 getDeviceClass(today)
-getGeoLocationsUSA(today)
-# getGeoLocationsUSCities(today)
-# fileCleanup()
+# getGeoLocationsUSA(today)
+getGeoLocationsUSCities(today)
+fileCleanup()
+    

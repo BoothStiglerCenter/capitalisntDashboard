@@ -15,7 +15,7 @@ sodium_key_for_cyphr <- key_sodium(sodium_key)
 
 
 custom_drop_auth <- function(new_user = FALSE, key = "mmhfsybffdom42w", secret = "l8zeqqqgm1ne5z0", cache = TRUE, rdstoken = NA) {
-    if (new_user == FALSE & !is.na(rdstoken)) {
+    if (new_user == FALSE && !is.na(rdstoken)) {
         if (file.exists(rdstoken)) {
             .dstate$token <- readRDS(rdstoken)
         } else {
