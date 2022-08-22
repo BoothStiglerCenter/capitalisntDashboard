@@ -27,7 +27,6 @@ library(sparkline)
 
 ##### For running with the dropbox data
 drop_token <- readRDS("drop_token_rds_decrypt.rds")
-# path_prepend <- "capitalisntDashboardData/"
 path_prepend <- ''
 dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
     select(path_lower) %>%
@@ -42,7 +41,6 @@ for (dfile in dropbox_files) {
         dtoken = drop_token
     )
 }
-print(list.files())
 local_files <- list.files()
 
 
@@ -139,6 +137,7 @@ default_selection <- downloads_data %>%
 ################################################
 
 pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) %>%
+    view() %>%
     mutate(
         categories = ifelse(rank < 8, "unique", "other"),
         name = ifelse(categories == "other", "Other", name),

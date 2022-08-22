@@ -797,15 +797,16 @@ def moveFiles():
     fileCleanup(dst_path_prepend)
 
 
-# getEpDownloads(today)
-# getKeyWords(today)
-# getListeningMethods(today)
-# getGeoLocations(today)
-# getEpCompletionRate(today)
-# getDeviceClass(today)
+getEpDownloads(today)
+getKeyWords(today)
+getListeningMethods(today)
+getGeoLocations(today)
+getEpCompletionRate(today)
+getDeviceClass(today)
 # # getGeoLocationsUSA(today)
-# getGeoLocationsUSCities(today)
-# fileCleanup()
+getGeoLocationsUSCities(today)
+fileCleanup()
 moveFiles()
+
 
 
