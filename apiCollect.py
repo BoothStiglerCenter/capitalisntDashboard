@@ -3,6 +3,7 @@ import requests
 import os
 import re
 import json
+import shutil
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
@@ -696,9 +697,14 @@ def getDeviceClass(current_datetime):
     return devices_df
 
 
-def fileCleanup():
+def fileCleanup(non_root_dir=None):
+
     filename_pattern = r'(.*)-(\d{4}-\d{2}-\d{2})\.csv'
-    dirlist = os.listdir()
+    if non_root_dir is not None:
+        dirlist = os.listdir(non_root_dir)
+    else:
+        dirlist = os.listdir()
+
     dirdict = {
         'episodes_completion' : [],
         'episodes_core' : [],
@@ -715,11 +721,13 @@ def fileCleanup():
         'is_isnt_completion_rates' : [],
     }
 
+    print(dirlist)
 
     for i, filename in enumerate(dirlist):
         search_obj = re.search(filename_pattern, filename)
         if search_obj:
             dirlist_index = i
+            # print(search_obj)
             csv_type = search_obj[1]
             csv_date = search_obj[2]
 
@@ -730,8 +738,8 @@ def fileCleanup():
     for key in dirdict.keys():
         type_files_listed = dirdict.get(key)
         print(key)
-        while len(type_files_listed) >1:
-        
+        while len(type_files_listed) > 1:
+            
             print(type_files_listed)
             oldest_date = min([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed])
             oldest_date_tuple_index = [index for index, date in enumerate(type_files_listed) if date[1] == datetime.strftime(oldest_date, date_format)][0]
@@ -739,6 +747,9 @@ def fileCleanup():
             print(position_in_directory)
             # print(max([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed]))
             file_to_remove_path = dirlist[position_in_directory]
+            if non_root_dir is not None:
+                remote_dir_prepend_path_prepend = non_root_dir
+                file_to_remove_path = remote_dir_prepend_path_prepend + '/' + file_to_remove_path
             os.remove(file_to_remove_path)
             print('\t GOING TO REMOVE: {}'.format((position_in_directory, datetime.strftime(oldest_date, date_format))))
             type_files_listed.remove((position_in_directory, datetime.strftime(oldest_date, date_format)))
@@ -747,16 +758,53 @@ def fileCleanup():
     return dirdict
 
 
+def moveFiles():
+    filename_pattern = r'(.*)-(\d{4}-\d{2}-\d{2})\.csv'
+    local_dirlist = os.listdir()
+    local_dirdict = {
+        'episodes_completion' : [],
+        'episodes_core' : [],
+        'episodes_downloads' : [],
+        'episodes_keywords' : [],
+        'episodes_listening_methods' : [],
+        'episodes_locations' : [],
+        'us_states_episode_locations' : [],
+        'us_states_podcast_locations' : [],
+        'us_cities_episode_locations' : [],
+        'podcast_device_class' : [],
+        'podcast_listening_methods' : [],
+        'podcast_locations' : [],
+        'is_isnt_completion_rates' : [],
+    }
+
+    for i, filename in enumerate(local_dirlist):
+        search_obj = re.search(filename_pattern, filename)
+        if search_obj:
+            csv_type = search_obj[1]
+            csv_date = search_obj[2]
+            local_dirdict[csv_type].append((i, filename))
+
+    dst_path_prepend = 'C:/Users/Joshualevy/Stigler Center Dropbox/Joshua Levy/capitalisntDashboardData'
+
+    for csv_type in local_dirdict.keys():
+        print(csv_type)
+
+        src_file = local_dirdict.get(csv_type)[0][1]
+        dst_path = dst_path_prepend + '/' + src_file
+        shutil.copyfile(src_file, dst_path)
+
+    fileCleanup(dst_path_prepend)
 
 
+# getEpDownloads(today)
+# getKeyWords(today)
+# getListeningMethods(today)
+# getGeoLocations(today)
+# getEpCompletionRate(today)
+# getDeviceClass(today)
+# # getGeoLocationsUSA(today)
+# getGeoLocationsUSCities(today)
+# fileCleanup()
+moveFiles()
 
-getEpDownloads(today)
-getKeyWords(today)
-getListeningMethods(today)
-getGeoLocations(today)
-getEpCompletionRate(today)
-getDeviceClass(today)
-# getGeoLocationsUSA(today)
-getGeoLocationsUSCities(today)
-fileCleanup()
-    
+
