@@ -10,6 +10,7 @@ from tqdm import tqdm
 ### READ IN API KEY
 api_keys_dict = json.load(open('env_keys.json'))
 simplecast_key = api_keys_dict.get('simplecast_key')
+dropbox_path = api_keys_dict.get('dropbox_path')
 auth_headers = {
     'authorization' : 'Bearer {}'.format(simplecast_key)
 }
@@ -784,7 +785,7 @@ def moveFiles():
             csv_date = search_obj[2]
             local_dirdict[csv_type].append((i, filename))
 
-    dst_path_prepend = 'C:/Users/Joshualevy/Stigler Center Dropbox/Joshua Levy/capitalisntDashboardData'
+    dst_path_prepend = dropbox_path
 
     for csv_type in local_dirdict.keys():
         print(csv_type)
