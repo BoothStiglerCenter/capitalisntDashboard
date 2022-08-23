@@ -255,8 +255,9 @@ def getEpDownloads(current_datetime):
     # If we have collected episode downloads before we only want to download new dates (we pass this this to the API)
     if default_date < downloads_last_collected_datetime:
         print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.'.format(downloads_last_collected_datetime))
-        get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
+        # get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
 
+    print("Unique episodes to collect: {}".format(len(eps_df)))
     for i, obs in tqdm(eps_df.iterrows(), desc="Episode-level downloads: "):
 
         episode_downloads_url = obs.episode_download_href
@@ -269,17 +270,22 @@ def getEpDownloads(current_datetime):
 
         downloads = response.json().get('by_interval')
         downloads_df = pd.DataFrame.from_dict(downloads)
+        # print(episode_title)
+        # print(downloads_df)
+
         downloads_df['episode_id'] = episode_id
         downloads_df['title'] = episode_title
 
         eps_downloads_df = pd.concat([eps_downloads_df, downloads_df], ignore_index=True)
 
-    eps_downloads_df = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
-    print('trying to get new eps downloads')
+    # print('BEFORE DROPPING DUPLICATES: {}'.format(len(eps_downloads_df)))
+    eps_downloads_df_unique = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
+    # print('AFTER DROPPING DUPLICATES: {}'.format(len(eps_downloads_df_unique)))
 
-    eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), index=False, encoding='utf-8')
 
-    return eps_downloads_df
+    eps_downloads_df_unique.to_csv('episodes_downloads-{}.csv'.format(today), index=False, encoding='utf-8')
+
+    return eps_downloads_df, eps_downloads_df_unique
 
 def getKeyWords(current_datetime):
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')

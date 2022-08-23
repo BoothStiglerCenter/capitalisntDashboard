@@ -8,12 +8,10 @@ library(echarts4r)
 library(reactable)
 library(countrycode)
 library(rdrop2)
-library(cyphr)
-library(sodium)
 library(markdown)
 library(sparkline)
 
-
+print(list.files())
 `%notin%` <- Negate(`%in%`)
 
 ##### For running Shiny app locally (runApp())
@@ -26,7 +24,10 @@ library(sparkline)
 
 
 ##### For running with the dropbox data
-drop_token <- readRDS("drop_token_rds_decrypt.rds")
+### For deploying from local
+# drop_token <- readRDS("drop_token_rds_decrypt.rds")
+### For deploying through docker
+drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
 path_prepend <- ''
 dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
     select(path_lower) %>%

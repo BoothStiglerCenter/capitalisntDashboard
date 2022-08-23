@@ -4,6 +4,7 @@ library(rdrop2)
 library(cyphr)
 library(sodium)
 library(rjson)
+library(renv)
 
 
 ### Create an encrypted OAuth Token that can be safely uploaded to GitHub
@@ -46,5 +47,7 @@ custom_drop_auth <- function(new_user = FALSE, key = "mmhfsybffdom42w", secret =
 
 drop_token <- custom_drop_auth()
 
-encrypt(saveRDS(drop_token, "drop_token_rds.rds"), sodium_key_for_cyphr)
+encrypt(saveRDS(drop_token, "capitalisntDashboardApp/drop_token_rds.rds"), sodium_key_for_cyphr)
 # saveRDS(drop_token, "drop_token_rds_decrypt.rds")
+
+renv::snapshot('.')
