@@ -39,7 +39,7 @@ setAccountInfo(
 
 # ### Deploy Application to Shiny
 deployApp(
-    appFiles = c("ui.R", "global.R", "server.R", "drop_token_rds_DECRYPTED.rds"),
+    appFiles = c("ui.R", "global.R", "server.R","about_panel.md", "drop_token_rds_DECRYPTED.rds"),
     appName = error_on_missing_name("LOCALDEVNAME"),
     appTitle = "Capitalisn't Dashboard"
 )

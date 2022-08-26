@@ -2,6 +2,7 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(ggtext)
+library(zoo)
 
 downloads_in <- read_csv('episodes_downloads-2022-08-23.csv')
 
@@ -104,3 +105,114 @@ ggplot(downloads_data %>%
     theme(
         plot.title = element_markdown()
     )
+
+ggplot(downloads_data %>%
+    select(-c(interval)) %>%
+    group_by(episode_id) %>%
+    filter(days_since_release %in% c(14, 28)) %>%
+    pivot_wider(
+        id_cols = c(episode_id, title, release_date),
+        names_from = days_since_release,
+        names_prefix = "downloads_t_",
+        values_from = cumulative_downloads
+    ) %>%
+    select(
+        episode_id,
+        title,
+        release_date,
+        downloads_t_14,
+        downloads_t_28
+    )
+    ) +
+    geom_segment(
+        aes(
+            x = release_date,
+            xend = release_date,
+            y = downloads_t_14,
+            yend = downloads_t_28
+        ),
+        color = "#B3B3B3"
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_14,
+            color = "#8B0021"
+        ),
+        size = 2
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_28,
+            color = "#007BA0"
+        ),
+        size = 2
+    ) +
+    labs(
+        title = "*Capitalisn't*: Cumulative episode downloads at *t=14* and *t=28*"
+    ) +
+    xlab("Release Date") +
+    ylab("Downloads") +
+    scale_y_continuous(labels = scales::comma) +
+    scale_color_manual(
+        breaks = c("#8B0021", "#007BA0"),
+        values = c("#8B0021", "#007BA0"),
+        labels = c("14 days", "28 days"),
+    ) +
+    guides(
+        color = guide_legend(
+            title = "Days Since Release:"
+        )
+    ) +
+    theme_minimal() +
+    theme(
+        plot.title = element_markdown(),
+        legend.position = "top"
+    )
+
+
+ggplot(downloads_data %>%
+    select(-c(interval)) %>%
+    group_by(episode_id) %>%
+    filter(days_since_release %in% c(14, 28)) %>%
+    pivot_wider(
+        id_cols = c(episode_id, title, release_date),
+        names_from = days_since_release,
+        names_prefix = "downloads_t_",
+        values_from = cumulative_downloads
+    ) %>%
+    select(
+        episode_id,
+        title,
+        release_date,
+        downloads_t_14,
+        downloads_t_28
+    )
+    ) +
+    geom_segment(
+        aes(
+            y = release_date,
+            yend = release_date,
+            x = downloads_t_14,
+            xend = downloads_t_28
+        )
+    ) +
+    geom_point(
+        aes(
+            y = release_date,
+            x = downloads_t_14,
+            color = "#8B0021"
+        ),
+        size = 2
+    ) +
+    geom_point(
+        aes(
+            y = release_date,
+            x = downloads_t_28,
+            color = "#007BA0"
+        ),
+        size = 2
+    ) +
+    geom_label_repel()
+    theme_minimal()
