@@ -245,17 +245,9 @@ def getEpDownloads(current_datetime):
         eps_df = getAllEpisodes(current_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
 
-    eps_downloads_df, downloads_last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_downloads')
 
-    # If we've never collected episode downloads before, we got a string back from identifyExistingCollection() and we nee to initialize a df before downloading everything.
-    if type(eps_downloads_df) == str:
-        print('Could not find a episodes_downloads .csv. Going to begin downloading all')
-        eps_downloads_df = pd.DataFrame()
-    
-    # If we have collected episode downloads before we only want to download new dates (we pass this this to the API)
-    if default_date < downloads_last_collected_datetime:
-        print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.'.format(downloads_last_collected_datetime))
-        # get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
+    # Because Simplecast handles the time-series for us at this endpoint (with the '"interval" : "day"' option passed in the query params), we don't bother constructing it ourselves. Instead we just download everything, every day.
+    eps_downloads_df = pd.DataFrame()
 
     print("Unique episodes to collect: {}".format(len(eps_df)))
     for i, obs in tqdm(eps_df.iterrows(), desc="Episode-level downloads: "):
