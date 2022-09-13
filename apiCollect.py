@@ -262,8 +262,7 @@ def getEpDownloads(current_datetime):
 
         downloads = response.json().get('by_interval')
         downloads_df = pd.DataFrame.from_dict(downloads)
-        # print(episode_title)
-        # print(downloads_df)
+
 
         downloads_df['episode_id'] = episode_id
         downloads_df['title'] = episode_title
