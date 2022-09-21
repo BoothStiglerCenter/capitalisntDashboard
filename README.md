@@ -93,8 +93,14 @@ The deploying and hosting process is multi-step to ensure that no secret API or 
 - The DockerFile is responsible for running a script that automatically deploys the contents of the updated liveProduction branch to shinyapps.io. It uses the `deployApp.R` script which itself reads various GitHub secrets to connect to, and then securely deploy the new app files to shinyapps.io
 - **IMPORTANT!!!** At present this file is responsible for token en/decryption. This process will eventually be moved to global.R
 - When a new version of the app is deploy to shinyapps.io, shinyapps.io clears the cache and removes the secret DropBox authentication token. That DropBox authentication token (now encrypted and saved inside the GitHub repo) must be deployed with the new version of dashboard.
-- In order to minimize the chance that this token is ever exposed to the internet, the .rds file is only decrypted on the shinyapps.io server/app instance. The symmetric en/decryption passphrase is stored as a GitHub secret and is passed to shinyapps.io as an environment variable. It is of critical importance that this passphrase is never uploaded to a website in an unecrypted fashion.
+- In order to minimize the chance that this token is ever exposed to the internet, the .rds file is only decrypted on the shinyapps.io server/app instance. The symmetric en/decryption passphrase is stored as a GitHub secret and is passed to shinyapps.io as an environment variable. It is of critical importance that this passphrase is never uploaded to a website in an unencrypted fashion.
 
 
 ## Contact
 
+
+
+## To Do:
+
+#### Analysis
+- Constructing performance of episode $t$ as the performance of episode $t+1$
