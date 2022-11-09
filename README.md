@@ -103,6 +103,7 @@ The deploying and hosting process is multi-step to ensure that no secret API or 
 docker build -f localRenvRestoreDockerfile . --tag renv-restore:latest --build-arg deployFrom=local 
 ```
 Otherwise, skip straight to...
+
 2. Incorporate any changes to the appropriate Docker image and run the deployment script through the base Dockerfile:
 ```Docker
 docker build . --tag capitalisnt-dashboard-deploy:latest
@@ -118,11 +119,12 @@ TODO: THIS SECTION NEEDS TO BE UPDATED WITH GITHUB ACTIONS SPECIFIC MATERIAL BUT
 docker build -f localRenvRestoreDockerfile . --tag renv-restore:latest --build-arg deployFrom=github 
 ```
 Otherwise, skip straight to...
+
 2. Incorporate any changes to the appropriate Docker image and run the deployment script through the base Dockerfile:
 ```Docker
 docker build . --tag capitalisnt-dashboard-deploy:latest
 docker run capitalisnt-dashboard-deploy
-
+```
 
 ## Contact
 
