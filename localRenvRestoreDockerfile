@@ -23,7 +23,6 @@ RUN if [ "$deployFrom" == "github" ]; \
     fi
 
 WORKDIR /app
-COPY capitalisntDashboardApp /app
 COPY renv.lock /app
 
 RUN R -e "renv::consent(provided=TRUE)"

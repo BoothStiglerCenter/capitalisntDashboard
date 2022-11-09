@@ -90,10 +90,38 @@ The deploying and hosting process is multi-step to ensure that no secret API or 
 
 **GitHub Actions**
 - When a new feature branch is pulled into the liveProduction branch a GitHub action fires, executing a Docker file that deploys those new features/versions to the live ShinyApp.
-- The DockerFile is responsible for running a script that automatically deploys the contents of the updated liveProduction branch to shinyapps.io. It uses the `deployApp.R` script which itself reads various GitHub secrets to connect to, and then securely deploy the new app files to shinyapps.io
-- **IMPORTANT!!!** At present this file is responsible for token en/decryption. This process will eventually be moved to global.R
-- When a new version of the app is deploy to shinyapps.io, shinyapps.io clears the cache and removes the secret DropBox authentication token. That DropBox authentication token (now encrypted and saved inside the GitHub repo) must be deployed with the new version of dashboard.
-- In order to minimize the chance that this token is ever exposed to the internet, the .rds file is only decrypted on the shinyapps.io server/app instance. The symmetric en/decryption passphrase is stored as a GitHub secret and is passed to shinyapps.io as an environment variable. It is of critical importance that this passphrase is never uploaded to a website in an unencrypted fashion.
+- If there have been any changes to the app that imply/force a change  in `renv.lock` then the `localRenvRestoreDockerfile` needs to be rebuilt. Otherwise we can immediately proceed to...
+- `Dockerfile` which runs the `deployApp.R` script pushing any new changes to shinyapps.io.
+- `Dockerfile` is responsible for running a script that automatically deploys the contents of the updated liveProduction branch to shinyapps.io. It uses the `deployApp.R` script which itself reads various GitHub secrets to connect to, and then securely deploy the new app files to shinyapps.io
+- **IMPORTANT!!!** At present this file is responsible for token en/decryption. The GitHub server itself uses encryption to protect our own en/decryption passphrase as an GitHub action environment secret. `deployApp.R` uses these environment secrets to decrypt an *encrypted* version of the DropBox authentication token that has bene pushed to GitHub, deploy that to shinyapps.io, and then delete the decrypted version again.
+- The encryption/decryption passphrase is saved as a GitHub action secret (itself encrypted) and the decrypted token is deployed to shinyapps.io, which itself uses sodium encryption to protect the DropBox credentials.
+
+### Deployment 
+#### From Local
+1. If any changes have been made to the app that affect `renv.lock` (i.e. packages) then a 'renv-restore' Docker image needs to rebuilt. Navigate to the project-level directory and then run:
+```Docker
+docker build -f localRenvRestoreDockerfile . --tag renv-restore:latest --build-arg deployFrom=local 
+```
+Otherwise, skip straight to...
+2. Incorporate any changes to the appropriate Docker image and run the deployment script through the base Dockerfile:
+```Docker
+docker build . --tag capitalisnt-dashboard-deploy:latest
+docker run capitalisnt-dashboard-deploy
+```
+
+
+
+#### From GitHub Actions
+TODO: THIS SECTION NEEDS TO BE UPDATED WITH GITHUB ACTIONS SPECIFIC MATERIAL BUT THE FOLLOWING IS THE GENERAL STRUCTURE.
+1. If any changes have been made to the app that affect `renv.lock` (i.e. packages) then a 'renv-restore' Docker image needs to rebuilt. Navigate to the project-level directory and then run:
+```Docker
+docker build -f localRenvRestoreDockerfile . --tag renv-restore:latest --build-arg deployFrom=github 
+```
+Otherwise, skip straight to...
+2. Incorporate any changes to the appropriate Docker image and run the deployment script through the base Dockerfile:
+```Docker
+docker build . --tag capitalisnt-dashboard-deploy:latest
+docker run capitalisnt-dashboard-deploy
 
 
 ## Contact
@@ -104,3 +132,4 @@ The deploying and hosting process is multi-step to ensure that no secret API or 
 
 #### Analysis
 - Constructing performance of episode $t$ as the performance of episode $t+1$
+- Setting up GitHub Continuous Integration/Deployment with Docker files/images.
