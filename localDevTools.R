@@ -15,7 +15,7 @@ sodium_key <- hash(charToRaw(keyphrase))
 sodium_key_for_cyphr <- key_sodium(sodium_key)
 
 
-custom_drop_auth <- function(new_user = FALSE, key = "mmhfsybffdom42w", secret = "l8zeqqqgm1ne5z0", cache = TRUE, rdstoken = NA) {
+custom_drop_auth <- function(new_user = TRUE, key = "mmhfsybffdom42w", secret = "l8zeqqqgm1ne5z0", cache = TRUE, rdstoken = NA) {
     if (new_user == FALSE && !is.na(rdstoken)) {
         if (file.exists(rdstoken)) {
             .dstate$token <- readRDS(rdstoken)
@@ -47,7 +47,7 @@ custom_drop_auth <- function(new_user = FALSE, key = "mmhfsybffdom42w", secret =
 
 drop_token <- custom_drop_auth()
 
-encrypt(saveRDS(drop_token, "capitalisntDashboardApp/drop_token_rds.rds"), sodium_key_for_cyphr)
+encrypt(saveRDS(drop_token, "capitalisntDashboardApp/drop_token_rds_ENCRYPTED.rds"), sodium_key_for_cyphr)
 # saveRDS(drop_token, "drop_token_rds_decrypt.rds")
 
 renv::snapshot('.')
