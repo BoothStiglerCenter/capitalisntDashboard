@@ -766,8 +766,8 @@ def moveFiles():
         'episodes_keywords' : [],
         'episodes_listening_methods' : [],
         'episodes_locations' : [],
-        'us_states_episode_locations' : [],
-        'us_states_podcast_locations' : [],
+        # 'us_states_episode_locations' : [],
+        # 'us_states_podcast_locations' : [],
         'us_cities_episode_locations' : [],
         'podcast_device_class' : [],
         'podcast_listening_methods' : [],
@@ -792,6 +792,7 @@ def moveFiles():
         shutil.copyfile(src_file, dst_path)
 
     fileCleanup(dst_path_prepend)
+
 
 
 getEpDownloads(today)
