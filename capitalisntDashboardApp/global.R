@@ -22,8 +22,6 @@ runMethods <- function(type) {
             pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
         )
         path_prepend <<- "../"
-        print(local_files)
-        print(path_prepend)
     } else if (type == "terminal") {
         local_files <<- list.files(
             pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
@@ -178,7 +176,6 @@ default_selection <- downloads_data %>%
 ################################################
 
 pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) %>%
-    view() %>%
     mutate(
         categories = ifelse(rank < 8, "unique", "other"),
         name = ifelse(categories == "other", "Other", name),

@@ -202,7 +202,7 @@ shinyServer(function(input, output) {
     output$calendarPlot <- renderEcharts4r({
         downloads_data %>%
             mutate(year = format(interval, '%Y')) %>%
-            filter(year %in% c("2020", "2021", "2022")) %>%
+            filter(year %in% c("2020", "2021", "2022", "2023")) %>%
             group_by(interval) %>%
             mutate(total_daily_downloads = sum(downloads_total)) %>%
             arrange(desc(total_daily_downloads)) %>%
@@ -214,6 +214,7 @@ shinyServer(function(input, output) {
             e_calendar(range = "2020", top = "40") %>%
             e_calendar(range = "2021", top = "220") %>%
             e_calendar(range = "2022", top = "400") %>%
+            e_calendar(range = "2023", top = "580") %>%
             e_heatmap(total_daily_downloads, coord_system = "calendar") %>%
             e_visual_map(total_daily_downloads, calculable = TRUE) %>%
             e_tooltip(trigger = "item")
@@ -262,7 +263,7 @@ shinyServer(function(input, output) {
                         format = colFormat(separators = TRUE)
                     )
                 ),
-                defaultPageSize = 8
+                defaultPageSize = 10
             )
     })
 
