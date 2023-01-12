@@ -14,6 +14,44 @@ library(sparkline)
 print(list.files())
 `%notin%` <- Negate(`%in%`)
 
+##### OPTION for ways to run
+runMethods <- function(type) {
+    if (type == "local") {
+        local_files <<- list.files(
+            path = "../",
+            pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
+        )
+        path_prepend <<- "../"
+    } else if (type == "terminal") {
+        local_files <<- list.files(
+            pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
+        )
+        path_prepend <<- ""
+    } else if (type == "docker") {
+        drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
+        path_prepend <- ""
+        dropbox_files <- drop_dir(
+            "capitalisntDashboardData",
+            dtoken = drop_token
+        ) %>%
+            select(path_lower) %>%
+            pull()
+        
+        print(dropbox_files)
+
+        for (dfile in dropbox_files) {
+            drop_download(
+                dfile,
+                overwrite = TRUE,
+                dtoken = drop_token
+            )
+        }
+        local_files <<- list.files()
+    }
+}
+runMethods("local")
+local_files
+
 ##### For running Shiny app locally (runApp())
 # local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
 # path_prepend = "../"
@@ -27,22 +65,22 @@ print(list.files())
 ### For deploying from local
 # drop_token <- readRDS("drop_token_rds_decrypt.rds")
 ### For deploying through docker
-drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
-path_prepend <- ''
-dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
-    select(path_lower) %>%
-    pull()
-print(dropbox_files)
+# drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
+# path_prepend <- ''
+# dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
+#     select(path_lower) %>%
+#     pull()
+# print(dropbox_files)
 
 
-for (dfile in dropbox_files) {
-    drop_download(
-        dfile,
-        overwrite = TRUE,
-        dtoken = drop_token
-    )
-}
-local_files <- list.files()
+# for (dfile in dropbox_files) {
+#     drop_download(
+#         dfile,
+#         overwrite = TRUE,
+#         dtoken = drop_token
+#     )
+# }
+# local_files <- list.files()
 
 
 
@@ -138,7 +176,6 @@ default_selection <- downloads_data %>%
 ################################################
 
 pod_platforms_data <- read_csv(paste0(path_prepend, podcast_platforms, sep="")) %>%
-    view() %>%
     mutate(
         categories = ifelse(rank < 8, "unique", "other"),
         name = ifelse(categories == "other", "Other", name),

@@ -40,7 +40,7 @@ shinyUI(fluidPage(
                     echarts4rOutput(
                         "calendarPlot",
                         width = "100%",
-                        height = "600px"
+                        height = "800px"
                     ),
                 ),
                 column(4,
