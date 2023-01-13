@@ -1,11 +1,4 @@
 @echo off
-echo Starting Automated API Collection
-
-echo ---------------------
-echo ------ CONDA --------
-echo ---------------------
-call activate ioCapture
-
 @REM Setting today's date etc for logging
 for /f "tokens=1-4 delims=/" %%i in ("%date%") do (
     set dow=%%i
@@ -15,16 +8,24 @@ for /f "tokens=1-4 delims=/" %%i in ("%date%") do (
 )
 set logfilename=%year%-%month%-%day%-apiCollect-log.txt
 
+> logs/%logfilename% (
+    echo Starting Automated API Collection
 
-echo ---------------------
-echo ------ PYTHON -------
-echo ---------------------
-@REM python HelloWorld.py
-python apiCollect.py > logs/%filename%
+    echo ---------------------
+    echo ------ CONDA --------
+    echo ---------------------
+    call activate ioCapture
 
 
 
-echo ---------------------
-echo ------ ENDING -------
-echo ---------------------
+    echo ---------------------
+    echo ------ PYTHON -------
+    echo ---------------------
+    @REM python HelloWorld.py
+    python apiCollect.py
 
+
+    echo ---------------------
+    echo ------ ENDING -------
+    echo ---------------------
+)
