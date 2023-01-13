@@ -1,11 +1,17 @@
 @echo off
 @REM Setting today's date etc for logging
-for /f "tokens=1-4 delims=/" %%i in ("%date%") do (
+for /f "tokens=1-4 delims=/ " %%i in ("%date%") do (
     set dow=%%i
     set month=%%j
     set day=%%k
     set year=%%l
 )
+
+echo DATE OF WEEK: %dow%
+echo MONTH: %month%
+echo DAY: %day%
+echo YEAR: %year%
+
 set logfilename=%year%-%month%-%day%-apiCollect-log.txt
 
 > logs/%logfilename% (
