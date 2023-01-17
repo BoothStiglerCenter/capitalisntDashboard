@@ -30,7 +30,7 @@ runMethods <- function(type) {
     } else if (type == "docker") {
         drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
         path_prepend <- ""
-        dropbox_files <- drop_dir(
+        dropbox_files <<- drop_dir(
             "capitalisntDashboardData",
             dtoken = drop_token
         ) %>%
@@ -105,6 +105,8 @@ for (file in local_files) {
         print(paste("episode_locations path is: ", episode_locations))
     } else if (str_detect(file, "is_isnt_completion_rates")) {
         is_isnt_path <- file
+    } else if (str_detect(file, "episodes_keywords")) {
+        episodes_keywords <- file
     }
 }
 
@@ -170,6 +172,19 @@ default_selection <- downloads_data %>%
         slice_max(release_date, n=5) %>%
         select(title) %>%
         pull()
+
+keywords_data <- read_csv(paste0(path_prepend, episodes_keywords, sep = "")) %>%
+    left_join(
+        episode_title_id,
+        by = "episode_id"
+    ) %>%
+    rename(
+        "keyword" = "value"
+    ) %>%
+    select(
+        episode_id,
+        keyword
+    )
 
 ################################################
 #### PLATFORMS TAB ##### DATA ####

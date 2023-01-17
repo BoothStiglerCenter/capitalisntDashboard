@@ -51,6 +51,14 @@ shinyServer(function(input, output) {
     output$episodeDownloadsTable <- renderReactable({
         downloads_data %>%
             filter(title %in% input$episodeSelectize) %>%
+            left_join(
+                keywords_data %>%
+                    group_by(episode_id) %>%
+                    summarise(
+                        keywords_concat = paste(keyword, collapse = ", ")
+                    ),
+                by = "episode_id"
+            ) %>%
             group_by(title) %>%
             mutate(
                 downloads_to_date = ifelse(
@@ -61,7 +69,8 @@ shinyServer(function(input, output) {
                     days_since_release == 14,
                     cumulative_downloads,
                     NA
-                )
+                ),
+                hidden_keyword_col = ""
             ) %>%
             left_join(completion_rate_data, by = "title") %>%
             arrange(downloads_t_14) %>%
@@ -73,7 +82,9 @@ shinyServer(function(input, output) {
                 downloads_to_date,
                 downloads_t_14,
                 avg_completion,
-                is_isnt
+                is_isnt,
+                hidden_keyword_col,
+                keywords_concat
             ) %>%
             mutate(
                 completion_bullet_range = list(c(is_isnt, avg_completion, 1))
@@ -95,6 +106,17 @@ shinyServer(function(input, output) {
                     downloads_t_14 = colDef(
                         name = "Downloads (t=14)",
                         format = colFormat(separators = TRUE)
+                    ),
+                    hidden_keyword_col = colDef(
+                        name = "Keywords/Tags",
+                        details = JS("
+                            function(rowInfo) {
+                                return rowInfo.values['keywords_concat']
+                            }
+                        ")
+                    ),
+                    keywords_concat = colDef(
+                        show = FALSE,
                     ),
                     avg_completion = colDef(show = FALSE),
                     is_isnt = colDef(show = FALSE),
