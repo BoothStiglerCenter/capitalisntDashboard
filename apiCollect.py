@@ -191,7 +191,7 @@ def getAllEpisodes(current_datetime):
         new_df.drop(columns=['season', 'number', 'downloads'], inplace=True)
 
         df = pd.concat([old_df, new_df])
-        df = df.drop_duplicates(subset=['episode_download_href'])
+        df = df.drop_duplicates(subset=['episode_id'])
 
         if len(df) != expected_episodes:
             raise MismatchError(len(df), expected_episodes)
@@ -795,16 +795,25 @@ def moveFiles():
 
 
 
+print('STARTING MAIN')
 getEpDownloads(today)
+print('PRINTING after getEpDownloads()')
 getKeyWords(today)
+print('PRINTING after getKeyWords()')
 getListeningMethods(today)
+print('PRINTING after getListeningMethods()')
 getGeoLocations(today)
+print('PRINTING after getGeoLocations()')
 getEpCompletionRate(today)
+print('PRINTING after getEpCompletionRate()')
 getDeviceClass(today)
+print('PRINTING after getDeviceClass()')
 # # getGeoLocationsUSA(today)
 getGeoLocationsUSCities(today)
+print('PRINTING after getGeoLocationsUSCities()')
 fileCleanup()
+print('PRINTING after fileCleanup()')
 moveFiles()
-
+print('PRINTING after moveFiles()')
 
 
