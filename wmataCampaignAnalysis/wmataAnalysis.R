@@ -147,20 +147,52 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         "date" = "interval",
         "daily_downloads" = "downloads_total"
     ) %>%
-    select(
-        date, daily_downloads
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
     ) %>%
     group_by(date) %>%
     mutate(
-        daily_downloads = sum(daily_downloads),
+        gap_to_release = as.integer(
+            interval(start = date, end = release_date)
+        )
     ) %>%
-    distinct() %>%
-    ungroup() %>%
-    arrange(date) %>%
+    arrange(date, desc(gap_to_release)) %>%
     mutate(
-        cumulative_downloads = cumsum(daily_downloads),
-        avg_downloads_14 = rollmean(
-            daily_downloads,
+        ordered_from_closest_release = row_number(),
+        active_back_expired_catalog = case_when(
+            ordered_from_closest_release == 1 ~ 1,
+            (ordered_from_closest_release >= 2) & (ordered_from_closest_release <= 6) ~ 2,
+            ordered_from_closest_release >= 7 ~ 3
+        )
+    ) %>%
+    select(
+        date, daily_downloads, active_back_expired_catalog
+    ) %>%
+    group_by(date) %>%
+    mutate(
+        all_daily_downloads = sum(daily_downloads),
+    ) %>%
+    group_by(date, active_back_expired_catalog) %>%
+    mutate(
+        grouped_daily_downloads = sum(daily_downloads)
+    ) %>%
+    distinct(
+        date, active_back_expired_catalog,
+        all_daily_downloads, grouped_daily_downloads
+    ) %>%
+    arrange(active_back_expired_catalog, date) %>%
+    group_by(active_back_expired_catalog) %>%
+    mutate(
+        avg_grouped_daily_downloads_14 = rollmean(
+            grouped_daily_downloads,
+            k = 14,
+            fill = NA,
+            align = "right"
+        ),
+        avg_all_daily_downloads_14 = rollmean(
+            all_daily_downloads,
             k = 14,
             fill = NA,
             align = "right"
@@ -179,10 +211,41 @@ ad_period_shade_geom <- geom_rect(
     alpha = 0.05
 )
 
+
+test <- ggplot(
+    podcast_daily_downloads_df %>%
+    pivot_longer(
+        cols = -c("date", "active_back_expired_catalog"),
+        names_to = "download_type",
+        values_to = "value"
+    ) %>%
+    filter(
+        download_type %in% c(
+            "avg_all_daily_downloads_14"
+        ),
+        date >= ymd("2022-10-01")
+    ) %>%
+    view()
+) +
+    ad_period_shade_geom +
+    geom_area(
+        aes(
+            x = date,
+            y = value,
+            fill = as.factor(active_back_expired_catalog),
+            group = active_back_expired_catalog
+        ),
+        position = "stack",
+        alpha = 0.5
+    ) +
+    scale_fill_discrete() +
+    theme_minimal()
+test
+
 recent_podcast_daily_perf <- ggplot(
     podcast_daily_downloads_df %>%
     pivot_longer(
-        cols = -c("date"),
+        cols = -c("date", "back_catalog_ind"),
         names_to = "download_type",
         values_to = "value"
     ) %>%
@@ -195,7 +258,9 @@ recent_podcast_daily_perf <- ggplot(
     geom_line(
         aes(
             x = date,
-            y = value
+            y = value,
+            color = back_catalog_ind,
+            group = back_catalog_ind
         ),
         size = 1.5
     ) +
@@ -276,15 +341,24 @@ recent_20_1142842_day_cumul_perf <- ggplot(
             release_dates_df
         ),
         days_since_release %in% c(1, 14, 28, 42)
-    ) %>%
-    pivot_wider(
-        id_cols = c(episode_id, release_date),
-        names_from  = days_since_release,
-        values_from = cumulative_downloads,
-        names_prefix = "downloads_t_"
     )
 ) +
+    ad_period_shade_geom + 
     geom_segment(
+        data = daily_downloads_df %>%
+            filter(
+                episode_id %in% recent_n_episode_ids(
+                    n = 20,
+                    release_dates_df
+                ),
+                days_since_release %in% c(1, 14, 28, 42)
+            ) %>%
+        pivot_wider(
+            id_cols = c(episode_id, release_date),
+            names_from  = days_since_release,
+            values_from = cumulative_downloads,
+            names_prefix = "downloads_t_"
+        ),
         aes(
             x = release_date,
             xend = release_date,
@@ -298,38 +372,30 @@ recent_20_1142842_day_cumul_perf <- ggplot(
     geom_point(
         aes(
             x = release_date,
-            y = downloads_t_1,
+            y = cumulative_downloads,
+            group = episode_id,
+            color = as.factor(days_since_release)
         ),
-        size = 2,
-        color = "#4D0000"
+        size = 1.5
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_14,
-        ),
-        size = 2,
-        color = "#800000"
+    scale_color_stigler(
+        name = "Days after release *t*: "
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_28,
-        ),
-        size = 2,
-        color = "#EA6A51"
+    scale_x_date(
+        labels = label_date_short(format = c("%y", "%b")),
+        breaks = date_breaks("1 month")
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_42,
-        ),
-        size = 2,
-        color = "#115E67"
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        limits = c(0, 20000),
+        expand = expand_scale(mult = c(0, 0))
     ) +
-    ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
-
-    theme_minimal()
+    labs(
+        title = "**Capitlisnt't downloads *t* days after release**",
+        tag = "Figure 1B"
+    ) +
+    theme_stigler()
 recent_20_1142842_day_cumul_perf
 
 
@@ -384,7 +450,7 @@ all_1142842_day_cumul_perf <- ggplot(
     ) +
     labs(
         title = "**Capitlisnt't downloads *t* days after release**",
-        tag = "Figure 1"
+        tag = "Figure 1A"
     ) +
     theme_stigler()
 all_1142842_day_cumul_perf
