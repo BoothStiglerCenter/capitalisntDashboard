@@ -8,22 +8,6 @@ source("theme_materials/theme_stigler.R")
 `%notin%` <- Negate(`%in%`)
 today_dt <- today()
 
-### COLORS ###
-stigler_colors <- c(
-    booth_maroon = "#800000",
-    booth_teal = "#115E67",
-    black_bean = "#4D0000",
-    persian_red = "#BA402C",
-    burnt_sienna = "#EA6A51",
-    pale_tangerine = "#FFA487",
-    midnight_green = "#00323B",
-    munsell_blue = "#4C8F98",
-    sky_blue = "#7EC0CA",
-    celeste = "#BAF5FF"
-)
-
-
-
 #### READING DATA IN ####
 dmv_data_in <- read_csv(
     "wmataCampaignAnalysis/states_cities_DMV.csv"
@@ -139,7 +123,7 @@ dmv_cities_df <- dmv_data_in %>%
     ) %>%
     view()
 
-### CONTENT-FUL DATA
+#### CONTENT-FUL DATA ####
 daily_downloads_df <- episodes_core_data_in %>%
     rename(
         "date" = "interval",
@@ -183,8 +167,7 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
-
-#### PLOTS
+#### PLOTS ####
 ad_period_shade_geom <- geom_rect(
     aes(
         xmin = ymd("2023-01-16"),
@@ -195,7 +178,6 @@ ad_period_shade_geom <- geom_rect(
     fill = "grey",
     alpha = 0.05
 )
-
 
 recent_podcast_daily_perf <- ggplot(
     podcast_daily_downloads_df %>%
@@ -346,6 +328,7 @@ recent_20_1142842_day_cumul_perf <- ggplot(
         color = "#115E67"
     ) +
     ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
+
     theme_minimal()
 recent_20_1142842_day_cumul_perf
 
@@ -354,15 +337,19 @@ all_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
     filter(
         days_since_release %in% c(1, 14, 28, 42)
-    ) %>%
-    pivot_wider(
-        id_cols = c(episode_id, release_date),
-        names_from  = days_since_release,
-        values_from = cumulative_downloads,
-        names_prefix = "downloads_t_"
     )
 ) +
     geom_segment(
+        data = daily_downloads_df %>%
+            filter(
+                days_since_release %in% c(1, 42)
+            ) %>%
+            pivot_wider(
+                id_cols = c(episode_id, release_date),
+                names_from  = days_since_release,
+                values_from = cumulative_downloads,
+                names_prefix = "downloads_t_"
+            ),
         aes(
             x = release_date,
             xend = release_date,
@@ -371,43 +358,33 @@ all_1142842_day_cumul_perf <- ggplot(
             group = episode_id
         ),
         color = "grey",
-        size = 1.25
+        size = 1
     ) +
     geom_point(
         aes(
             x = release_date,
-            y = downloads_t_1,
+            y = cumulative_downloads,
+            group = episode_id,
+            color = as.factor(days_since_release)
         ),
-        size = 2,
-        color = "#4D0000"
+        size = 1.5
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_14,
-        ),
-        size = 2,
-        color = "#800000"
+    scale_color_stigler(
+        name = "Days after release *t*: "
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_28,
-        ),
-        size = 2,
-        color = "#EA6A51"
+    scale_x_date(
+        labels = label_date_short(format = c("%y", "%b")),
+        breaks = date_breaks("3 month")
     ) +
-    geom_point(
-        aes(
-            x = release_date,
-            y = downloads_t_42,
-        ),
-        size = 2,
-        color = "#115E67"
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        limits = c(0, 20000),
+        expand = expand_scale(mult = c(0, 0))
     ) +
-    ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
-    # theme_minimal()
+    labs(
+        title = "**Capitlisnt't downloads *t* days after release**",
+        tag = "Figure 1"
+    ) +
     theme_stigler()
-
-
 all_1142842_day_cumul_perf

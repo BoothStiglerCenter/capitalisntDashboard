@@ -11,12 +11,12 @@ localDevTools.R
 ### Ignore utilities
 .Rproj.user
 renv/
-theme_materials/
+
 
 ### Ignore all .csv files for the time being
 **/*.csv
 ### Ignore all .otf files because we don't want to push fonts
-
+**/*.otf
 
 ### Ignore all of the logs that are generated when apiCollect.py is run
 logs/
