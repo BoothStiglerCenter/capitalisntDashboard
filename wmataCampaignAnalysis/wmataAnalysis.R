@@ -4,6 +4,7 @@ library(lubridate)
 library(scales)
 library(ggtext)
 library(zoo)
+source("theme_materials/theme_stigler.R")
 `%notin%` <- Negate(`%in%`)
 today_dt <- today()
 
@@ -405,7 +406,8 @@ all_1142842_day_cumul_perf <- ggplot(
         color = "#115E67"
     ) +
     ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
-    theme_minimal()
+    # theme_minimal()
+    theme_stigler()
 
 
 all_1142842_day_cumul_perf
