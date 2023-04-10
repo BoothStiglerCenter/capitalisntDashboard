@@ -3,11 +3,24 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(ggtext)
+library(zoo)
 `%notin%` <- Negate(`%in%`)
-
-
 today_dt <- today()
-# today_format <- 
+
+### COLORS ###
+stigler_colors <- c(
+    booth_maroon = "#800000",
+    booth_teal = "#115E67",
+    black_bean = "#4D0000",
+    persian_red = "#BA402C",
+    burnt_sienna = "#EA6A51",
+    pale_tangerine = "#FFA487",
+    midnight_green = "#00323B",
+    munsell_blue = "#4C8F98",
+    sky_blue = "#7EC0CA",
+    celeste = "#BAF5FF"
+)
+
 
 
 #### READING DATA IN ####
@@ -29,30 +42,44 @@ episode_locations_data_in <- read_csv(
     )
 )
 
-
-
 #### REFERENCE FUNCTIONS ####
+
 recent_n_episode_ids <- function(
     n = 0,
     release_dates_df
 ) {
     episode_ids <- release_dates_df %>%
         dplyr::arrange(
-            desc(
-                release_date
-            )
+            dplyr::desc(release_date)
         ) %>%
         head(n) %>%
         dplyr::pull(episode_id)
 
+    return(episode_ids)
+}
+
+released_since_episode_ids <- function(
+    cutoff_date_str,
+    release_dates_df
+) {
+    episode_ids <- release_dates_df %>%
+        dplyr::arrange(
+            dplyr::desc(release_date)
+        ) %>%
+        dplyr::filter(
+            release_date >= lubridate::ymd(cutoff_date_str)
+        ) %>%
+        dplyr::pull(episode_id)
 
     return(episode_ids)
 }
 
+
+
 #### REFERENCES DFs  ####
-######## Reference info:
-######## Digital (train platforms) : 01/19/2023 -- 02/15/2023
-######## Static (train cars): 01/16/2023 -- 02/12/2023
+    ######## Reference info:
+    ######## Digital (train platforms) : 01/19/2023 -- 02/15/2023
+    ######## Static (train cars): 01/16/2023 -- 02/12/2023
 
 titles_ids_df <- episodes_core_data_in %>%
     select(episode_id, title) %>%
@@ -93,8 +120,6 @@ campaign_dates_df <- episodes_core_data_in %>%
         )
     )
 
-
-
 dmv_cities_df <- dmv_data_in %>%
     filter(
         state_id %in% c(
@@ -112,7 +137,6 @@ dmv_cities_df <- dmv_data_in %>%
         city_name, city_id, state_id, relevant_msa
     ) %>%
     view()
-
 
 ### CONTENT-FUL DATA
 daily_downloads_df <- episodes_core_data_in %>%
@@ -133,17 +157,95 @@ daily_downloads_df <- episodes_core_data_in %>%
     ) %>%
     view()
 
+podcast_daily_downloads_df <- episodes_core_data_in %>%
+    rename(
+        "date" = "interval",
+        "daily_downloads" = "downloads_total"
+    ) %>%
+    select(
+        date, daily_downloads
+    ) %>%
+    group_by(date) %>%
+    mutate(
+        daily_downloads = sum(daily_downloads),
+    ) %>%
+    distinct() %>%
+    ungroup() %>%
+    arrange(date) %>%
+    mutate(
+        cumulative_downloads = cumsum(daily_downloads),
+        avg_downloads_14 = rollmean(
+            daily_downloads,
+            k = 14,
+            fill = NA,
+            align = "right"
+        )
+    )
 
 
+#### PLOTS
+ad_period_shade_geom <- geom_rect(
+    aes(
+        xmin = ymd("2023-01-16"),
+        xmax = ymd("2023-02-15"),
+        ymin = 0,
+        ymax = Inf,
+    ),
+    fill = "grey",
+    alpha = 0.05
+)
 
 
-### PLOTS
+recent_podcast_daily_perf <- ggplot(
+    podcast_daily_downloads_df %>%
+    pivot_longer(
+        cols = -c("date"),
+        names_to = "download_type",
+        values_to = "value"
+    ) %>%
+    filter(
+        download_type %in% c("avg_downloads_14"),
+        date >= ymd("2022-10-01")
+    )
+) +
+    ad_period_shade_geom +
+    geom_line(
+        aes(
+            x = date,
+            y = value
+        ),
+        size = 1.5
+    ) +
+    theme_minimal()
+recent_podcast_daily_perf
 
-recent_15_episodes_cumul_perf <- ggplot(
+all_podcast_daily_perf <- ggplot(
+    podcast_daily_downloads_df %>%
+    pivot_longer(
+        cols = -c("date"),
+        names_to = "download_type",
+        values_to = "value"
+    ) %>%
+    filter(
+        download_type %in% c("avg_downloads_14")
+    )
+) +
+    ad_period_shade_geom +
+    geom_line(
+        aes(
+            x = date,
+            y = value
+        ),
+        size = 1.5
+    ) +
+    theme_minimal()
+all_podcast_daily_perf
+
+recent_20_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
         filter(
             episode_id %in% recent_n_episode_ids(
-                n = 15,
+                n = 20,
                 release_dates_df
             )
         )
@@ -159,13 +261,13 @@ recent_15_episodes_cumul_perf <- ggplot(
     ) +
     scale_color_viridis_c() +
     theme_minimal()
-recent_15_episodes_cumul_perf
+recent_20_episodes_cumul_perf
 
-recent_15_episodes_daily_perf <- ggplot(
+recent_20_episodes_daily_perf <- ggplot(
     daily_downloads_df %>%
         filter(
             episode_id %in% recent_n_episode_ids(
-                n = 15,
+                n = 20,
                 release_dates_df
             )
         )
@@ -181,16 +283,16 @@ recent_15_episodes_daily_perf <- ggplot(
     ) +
     scale_color_viridis_c() +
     theme_minimal()
-recent_15_episodes_daily_perf
+recent_20_episodes_daily_perf
 
-recent_15_142842_day_cumul_perf <- ggplot(
+recent_20_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
     filter(
         episode_id %in% recent_n_episode_ids(
-            n = 15,
+            n = 20,
             release_dates_df
         ),
-        days_since_release %in% c(14, 28, 42)
+        days_since_release %in% c(1, 14, 28, 42)
     ) %>%
     pivot_wider(
         id_cols = c(episode_id, release_date),
@@ -203,7 +305,7 @@ recent_15_142842_day_cumul_perf <- ggplot(
         aes(
             x = release_date,
             xend = release_date,
-            y = downloads_t_14,
+            y = downloads_t_1,
             yend = downloads_t_42,
             group = episode_id
         ),
@@ -213,24 +315,97 @@ recent_15_142842_day_cumul_perf <- ggplot(
     geom_point(
         aes(
             x = release_date,
+            y = downloads_t_1,
+        ),
+        size = 2,
+        color = "#4D0000"
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
             y = downloads_t_14,
         ),
-        color = "red"
+        size = 2,
+        color = "#800000"
     ) +
     geom_point(
         aes(
             x = release_date,
             y = downloads_t_28,
         ),
-        color = "green"
+        size = 2,
+        color = "#EA6A51"
     ) +
     geom_point(
         aes(
             x = release_date,
             y = downloads_t_42,
         ),
-        color = "blue"
+        size = 2,
+        color = "#115E67"
     ) +
+    ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
+    theme_minimal()
+recent_20_1142842_day_cumul_perf
+
+
+all_1142842_day_cumul_perf <- ggplot(
+    daily_downloads_df %>%
+    filter(
+        days_since_release %in% c(1, 14, 28, 42)
+    ) %>%
+    pivot_wider(
+        id_cols = c(episode_id, release_date),
+        names_from  = days_since_release,
+        values_from = cumulative_downloads,
+        names_prefix = "downloads_t_"
+    )
+) +
+    geom_segment(
+        aes(
+            x = release_date,
+            xend = release_date,
+            y = downloads_t_1,
+            yend = downloads_t_42,
+            group = episode_id
+        ),
+        color = "grey",
+        size = 1.25
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_1,
+        ),
+        size = 2,
+        color = "#4D0000"
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_14,
+        ),
+        size = 2,
+        color = "#800000"
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_28,
+        ),
+        size = 2,
+        color = "#EA6A51"
+    ) +
+    geom_point(
+        aes(
+            x = release_date,
+            y = downloads_t_42,
+        ),
+        size = 2,
+        color = "#115E67"
+    ) +
+    ylim(c(0, max(daily_downloads_df$cumulative_downloads))) +
     theme_minimal()
 
-recent_15_142842_day_cumul_perf
+
+all_1142842_day_cumul_perf
