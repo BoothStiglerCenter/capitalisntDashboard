@@ -147,14 +147,14 @@ stigler_palettes <- list(
     `main` = stigler_cols(
         "booth_maroon",
         "booth_teal",
-        "black_bean",
         "persian_red",
-        "burnt_sienna",
-        "pale_tangerine",
-        "midnight_green",
         "munsell_blue",
+        "burnt_sienna",
         "sky_blue",
-        "celeste"
+        "pale_tangerine",
+        "celeste",
+        "black_bean",
+        "midnight_green"
     ),
     `reds` = stigler_cols(
         "booth_maroon",
@@ -192,4 +192,19 @@ scale_color_stigler <- function(
         } else {
             scale_color_gradientn(colors = pal(256), ...)
         }
+}
+
+scale_fill_stigler <- function(
+    palette = "main",
+    reverse = FALSE,
+    discrete = TRUE,
+    ...
+) {
+    pal <- stigler_pal(palette = palette, reverse = reverse,...)
+    if (discrete) {
+        discrete_scale("fill", paste0("stigler_", palette), palette = pal, ...)
+    } else {
+        scale_fill_gradient(colors = pal(256). ...)
+    }
+
 }
