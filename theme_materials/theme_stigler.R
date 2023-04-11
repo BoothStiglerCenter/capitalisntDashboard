@@ -40,14 +40,14 @@ theme_stigler <- function() {
                 hjust = 0, # hjust = 0 "left-aligned"
                 vjust = 0, # vjust = 0 "top-aligned"
                 margin = margin(t = 2.5, r = 0, b = 0, l = 0, unit = "pt"),
-                debug = TRUE
+                debug = FALSE
             ),
             plot.subtitle = element_markdown(
                 size = 16, # Size (pt)
                 hjust = 0, # hjust = 0 "left-aligned"
                 vjust = 0, # vjust = 0 "top-aligned"
                 margin = margin(t = 5, r = 0, b = 0, l = 0, unit = "pt"),
-                debug = TRUE
+                debug = FALSE
             ),
             plot.caption.position = "panel",
             plot.caption = element_text(
@@ -55,7 +55,7 @@ theme_stigler <- function() {
                 hjust = 0,
                 vjust = 0,
                 margin = margin(t = 5, r = 0, b = 0, l = 0, unit = "pt"),
-                debug = TRUE
+                debug = FALSE
             ),
             plot.tag.position = c(0, 1),
             plot.tag = element_text(
@@ -63,7 +63,7 @@ theme_stigler <- function() {
                 color = "#800000",
                 hjust = 0,
                 vjust = 0,
-                debug = TRUE
+                debug = FALSE
             ),
 
             ### Axes
@@ -74,7 +74,7 @@ theme_stigler <- function() {
                 hjust = 0.5,
                 vjust = 1,
                 margin = margin(t = 5, r = 0, b = 0, l = 0, unit = "pt"),
-                debug = TRUE
+                debug = FALSE
             ),
             axis.title.y = element_blank(),
             axis.text = element_text(
@@ -84,7 +84,7 @@ theme_stigler <- function() {
                 hjust = 1,
                 vjust = -0.5,
                 margin = margin(t = -0, r = 10, b = 0, l = -40, unit = "pt"),
-                debug = TRUE
+                debug = FALSE
             ),
             axis.line.x = element_line(
                 color = "black",
@@ -109,14 +109,14 @@ theme_stigler <- function() {
                 size = 12,
                 hjust = 0,
                 vjust = 0.5,
-                debug = TRUE
+                debug = FALSE
             ),
             legend.text = element_markdown(
                 family = font,
                 size = 12,
                 hjust = 0,
                 vjust = 0.5,
-                debug = TRUE
+                debug = FALSE
             )
         )
 }

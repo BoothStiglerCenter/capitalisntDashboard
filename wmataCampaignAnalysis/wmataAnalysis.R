@@ -4,6 +4,7 @@ library(lubridate)
 library(scales)
 library(ggtext)
 library(zoo)
+library(stargazer)
 source("theme_materials/theme_stigler.R")
 `%notin%` <- Negate(`%in%`)
 today_dt <- today()
@@ -120,8 +121,7 @@ dmv_cities_df <- dmv_data_in %>%
     ) %>%
     select(
         city_name, city_id, state_id, relevant_msa
-    ) %>%
-    view()
+    )
 
 #### CONTENT-FUL DATA ####
 daily_downloads_df <- episodes_core_data_in %>%
@@ -139,8 +139,7 @@ daily_downloads_df <- episodes_core_data_in %>%
     mutate(
         days_since_release = row_number(),
         cumulative_downloads = cumsum(daily_downloads)
-    ) %>%
-    view()
+    )
 
 podcast_daily_downloads_df <- episodes_core_data_in %>%
     rename(
@@ -199,7 +198,131 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
-#### PLOTS ####
+### REGRESSION ###
+##### SUMMARY STATISTICS #####
+episode_level_summ_df <- daily_downloads_df %>%
+    select(
+        episode_id, daily_downloads, days_since_release, cumulative_downloads
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            days_since_release == 14,
+            cumulative_downloads,
+            NA
+        ),
+        downloads_t_28 = ifelse(
+            days_since_release == 28,
+            cumulative_downloads,
+            NA
+        )
+    ) %>%
+    summarise(
+        days_since_release = max(days_since_release, na.rm = TRUE),
+        downloads_t_14 = max(downloads_t_14, na.rm = TRUE),
+        downloads_t_28 = max(downloads_t_28, na.rm = TRUE)
+    ) %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            downloads_t_14 == -Inf,
+            NA, downloads_t_14
+        ),
+        downloads_t_28 = ifelse(
+            downloads_t_28 == -Inf,
+            NA, downloads_t_28
+        ),
+    )
+
+stargazer(
+    as.data.frame(episode_level_summ_df),
+    summary.stat = c("min", "p25", "sd", "mean", "median", "p75", "max", "n"),
+    digits = 1,
+    style = "qje"
+)
+
+recent_20_episode_level_summ_df <- daily_downloads_df %>%
+    select(
+        episode_id, daily_downloads, days_since_release, cumulative_downloads
+    ) %>%
+    filter(
+        episode_id %in% recent_n_episode_ids(
+            n = 20,
+            release_dates_df
+        )
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            days_since_release == 14,
+            cumulative_downloads,
+            NA
+        ),
+        downloads_t_28 = ifelse(
+            days_since_release == 28,
+            cumulative_downloads,
+            NA
+        )
+    ) %>%
+    summarise(
+        days_since_release = max(days_since_release, na.rm = TRUE),
+        downloads_t_14 = max(downloads_t_14, na.rm = TRUE),
+        downloads_t_28 = max(downloads_t_28, na.rm = TRUE)
+    ) %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            downloads_t_14 == -Inf,
+            NA, downloads_t_14
+        ),
+        downloads_t_28 = ifelse(
+            downloads_t_28 == -Inf,
+            NA, downloads_t_28
+        ),
+    )
+
+stargazer(
+    as.data.frame(recent_20_episode_level_summ_df),
+    summary.stat = c("min", "p25", "sd", "mean", "median", "p75", "max", "n"),
+    digits = 1,
+    style = "qje"
+)
+
+
+##### NAIVE EPISODE-LEVEL OLS #####
+t_14_ols_df <- daily_downloads_df %>%
+    select(
+        episode_id, date, daily_downloads, days_since_release, cumulative_downloads, release_date
+    ) %>%
+    group_by(date) %>%
+    mutate(
+        gap_to_release = as.integer(
+            interval(start = date, end = release_date)
+        )
+    ) %>%
+    arrange(date, desc(gap_to_release)) %>%
+    mutate(
+        ordered_from_closest_release = row_number(),
+        active_back_expired_catalog = case_when(
+            ordered_from_closest_release == 1 ~ 1,
+            (ordered_from_closest_release >= 2) & (ordered_from_closest_release <= 6) ~ 2,
+            ordered_from_closest_release >= 7 ~ 3
+        )
+    ) %>%
+    view()
+
+
+    filter(episode_id) %>%
+    mutate(
+        release_date
+    )
+
+
+
+##### REGRESSION TABLES #####
+
+
+### PLOTS ###
+
+##### REFERENCE GGPLOT ELEMENTS ##### 
 ad_period_shade_geom <- geom_rect(
     aes(
         xmin = ymd("2023-01-16"),
@@ -210,8 +333,26 @@ ad_period_shade_geom <- geom_rect(
     fill = "grey",
     alpha = 0.05
 )
+ad_period_line_start_geom <- geom_segment(
+    aes(
+        x = ymd("2023-01-16"),
+        xend = ymd("2023-01-16"),
+        y = 0,
+        yend = Inf
+    ),
+    color = "grey48"
+)
+ad_period_line_end_geom <- geom_segment(
+    aes(
+        x = ymd("2023-02-15"),
+        xend = ymd("2023-02-15"),
+        y = 0,
+        yend = Inf
+    ),
+    color = "grey48"
+)
 
-
+##### MOVING AVERAGE DECOMPOSITION GGPLOTS ####
 recent_podcast_moving_avg_decomp <- ggplot(
     podcast_daily_downloads_df %>%
     pivot_longer(
@@ -226,7 +367,6 @@ recent_podcast_moving_avg_decomp <- ggplot(
         date >= ymd("2022-10-01")
     )
 ) +
-    ad_period_shade_geom +
     geom_area(
         aes(
             x = date,
@@ -237,6 +377,8 @@ recent_podcast_moving_avg_decomp <- ggplot(
         position = "stack",
         alpha = 1
     ) +
+    ad_period_line_start_geom +
+    ad_period_line_end_geom +
     scale_fill_stigler(
         breaks = c(1, 2, 3),
         labels = c("Most-recent", "Next Five", "Older"),
@@ -248,6 +390,7 @@ recent_podcast_moving_avg_decomp <- ggplot(
         position = "right"
     ) +
     scale_x_date(
+        name = "Date",
         breaks = date_breaks("1 month"),
         labels = label_date_short(format = c("%y", "%b"))
     ) +
@@ -272,7 +415,6 @@ alltime_podcast_moving_avg_decomp <- ggplot(
         )
     )
 ) +
-    ad_period_shade_geom +
     geom_area(
         aes(
             x = date,
@@ -283,6 +425,8 @@ alltime_podcast_moving_avg_decomp <- ggplot(
         position = "stack",
         alpha = 1
     ) +
+    ad_period_line_start_geom +
+    ad_period_line_end_geom +
     scale_fill_stigler(
         breaks = c(1, 2, 3),
         labels = c("Most-recent", "Next Five", "Older"),
@@ -305,9 +449,7 @@ alltime_podcast_moving_avg_decomp <- ggplot(
     theme_stigler()
 alltime_podcast_moving_avg_decomp
 
-
-
-
+##### CUMULATIVE DOWNLOADS GGPLOTS #####
 recent_20_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
         filter(
@@ -333,6 +475,10 @@ recent_20_episodes_cumul_perf <- ggplot(
         name = "",
         guide = "none"
     ) +
+    scale_x_continuous(
+        expand = expand_scale(mult = c(0,0)),
+        limits = c(0, 250)
+    ) +
     scale_y_continuous(
         labels = scales::comma,
         position = "right",
@@ -349,7 +495,7 @@ recent_20_episodes_cumul_perf
 
 alltime_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
-        mutate(release_date = as.numeric(release_date)) %>%
+        mutate(release_date = as.numeric(release_date))
 ) +
     geom_line(
         aes(
@@ -381,6 +527,7 @@ alltime_episodes_cumul_perf <- ggplot(
     theme_stigler()
 alltime_episodes_cumul_perf
 
+##### t={1,14,28,42} CUMULATIVE DOWNLOADS GGPLOTS #####
 recent_20_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
     filter(
@@ -445,7 +592,6 @@ recent_20_1142842_day_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 recent_20_1142842_day_cumul_perf
-
 
 all_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
