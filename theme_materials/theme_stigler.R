@@ -169,6 +169,14 @@ stigler_palettes <- list(
         "sky_blue",
         "celeste",
         "midnight_green"
+    ),
+    `reds_2` = stigler_cols(
+        "black_bean",
+        "pale_tangerine"
+    ),
+    `blues_2` = stigler_cols(
+        "midnight_green",
+        "celeste"
     )
 )
 
@@ -204,7 +212,7 @@ scale_fill_stigler <- function(
     if (discrete) {
         discrete_scale("fill", paste0("stigler_", palette), palette = pal, ...)
     } else {
-        scale_fill_gradient(colors = pal(256). ...)
+        scale_fill_gradient(colors = pal(256), ...)
     }
 
 }

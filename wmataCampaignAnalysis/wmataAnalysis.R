@@ -212,7 +212,7 @@ ad_period_shade_geom <- geom_rect(
 )
 
 
-test <- ggplot(
+recent_podcast_moving_avg_decomp <- ggplot(
     podcast_daily_downloads_df %>%
     pivot_longer(
         cols = -c("date", "active_back_expired_catalog"),
@@ -224,8 +224,7 @@ test <- ggplot(
             "avg_all_daily_downloads_14"
         ),
         date >= ymd("2022-10-01")
-    ) %>%
-    view()
+    )
 ) +
     ad_period_shade_geom +
     geom_area(
@@ -236,58 +235,78 @@ test <- ggplot(
             group = active_back_expired_catalog
         ),
         position = "stack",
-        alpha = 0.5
+        alpha = 1
     ) +
-    scale_fill_discrete() +
-    theme_minimal()
-test
+    scale_fill_stigler(
+        breaks = c(1, 2, 3),
+        labels = c("Most-recent", "Next Five", "Older"),
+        name = ""
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        expand = expand_scale(mult = c(0, 0)),
+        position = "right"
+    ) +
+    scale_x_date(
+        breaks = date_breaks("1 month"),
+        labels = label_date_short(format = c("%y", "%b"))
+    ) +
+    labs(
+        title = "**Capitalisn't: Composition of daily-downloads moving average**", 
+        subtitle = "14-day leading average, since Oct. 1st, 2022",
+        tag = "Figure 2A"
+    ) +
+    theme_stigler()
+recent_podcast_moving_avg_decomp
 
-recent_podcast_daily_perf <- ggplot(
+alltime_podcast_moving_avg_decomp <- ggplot(
     podcast_daily_downloads_df %>%
     pivot_longer(
-        cols = -c("date", "back_catalog_ind"),
+        cols = -c("date", "active_back_expired_catalog"),
         names_to = "download_type",
         values_to = "value"
     ) %>%
     filter(
-        download_type %in% c("avg_downloads_14"),
-        date >= ymd("2022-10-01")
+        download_type %in% c(
+            "avg_all_daily_downloads_14"
+        )
     )
 ) +
     ad_period_shade_geom +
-    geom_line(
+    geom_area(
         aes(
             x = date,
             y = value,
-            color = back_catalog_ind,
-            group = back_catalog_ind
+            fill = as.factor(active_back_expired_catalog),
+            group = active_back_expired_catalog
         ),
-        size = 1.5
+        position = "stack",
+        alpha = 1
     ) +
-    theme_minimal()
-recent_podcast_daily_perf
+    scale_fill_stigler(
+        breaks = c(1, 2, 3),
+        labels = c("Most-recent", "Next Five", "Older"),
+        name = ""
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        expand = expand_scale(mult = c(0, 0)),
+        position = "right"
+    ) +
+    scale_x_date(
+        breaks = date_breaks("3 month"),
+        labels = label_date_short(format = c("%y", "%b"))
+    ) +
+    labs(
+        title = "**Capitalisn't: Composition of daily-downloads moving average**", 
+        subtitle = "14-day leading average, all time",
+        tag = "Figure 2B"
+    ) +
+    theme_stigler()
+alltime_podcast_moving_avg_decomp
 
-all_podcast_daily_perf <- ggplot(
-    podcast_daily_downloads_df %>%
-    pivot_longer(
-        cols = -c("date"),
-        names_to = "download_type",
-        values_to = "value"
-    ) %>%
-    filter(
-        download_type %in% c("avg_downloads_14")
-    )
-) +
-    ad_period_shade_geom +
-    geom_line(
-        aes(
-            x = date,
-            y = value
-        ),
-        size = 1.5
-    ) +
-    theme_minimal()
-all_podcast_daily_perf
+
+
 
 recent_20_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
@@ -303,35 +322,64 @@ recent_20_episodes_cumul_perf <- ggplot(
             x = days_since_release,
             y = cumulative_downloads,
             group = episode_id,
-            color = release_date
+            color = as.numeric(release_date)
         ),
         size = 1.5
     ) +
-    scale_color_viridis_c() +
-    theme_minimal()
+    scale_color_stigler(
+        "blues_2",
+        reverse = TRUE,
+        discrete = FALSE,
+        name = "",
+        guide = "none"
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        expand = expand_scale(mult = c(0, 0)),
+        limits = c(0, 25000)
+    ) +
+    labs(
+        title = "**Capitalisn't: Cumulative daily downloads**",
+        subtitle = "20 most recent episodes",
+        tag = "Figure 3A"
+    ) +
+    theme_stigler()
 recent_20_episodes_cumul_perf
 
-recent_20_episodes_daily_perf <- ggplot(
+alltime_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
-        filter(
-            episode_id %in% recent_n_episode_ids(
-                n = 20,
-                release_dates_df
-            )
-        )
+        mutate(release_date = as.numeric(release_date)) %>%
 ) +
     geom_line(
         aes(
-            x = date,
-            y = daily_downloads,
+            x = days_since_release,
+            y = cumulative_downloads,
             group = episode_id,
             color = release_date
         ),
         size = 1.5
     ) +
-    scale_color_viridis_c() +
-    theme_minimal()
-recent_20_episodes_daily_perf
+    scale_color_stigler(
+        "blues_2",
+        reverse = TRUE,
+        discrete = FALSE,
+        guide = "none"
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        expand = expand_scale(mult = c(0, 0)),
+        limits = c(0, 30000)
+    ) +
+    # ggtitle("test") +
+    labs(
+        title = "**Capitalisn't: Cumulative daily downloads**",
+        subtitle = "20 most recent episodes",
+        tag = "Figure 3B"
+    ) +
+    theme_stigler()
+alltime_episodes_cumul_perf
 
 recent_20_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
@@ -343,7 +391,7 @@ recent_20_1142842_day_cumul_perf <- ggplot(
         days_since_release %in% c(1, 14, 28, 42)
     )
 ) +
-    ad_period_shade_geom + 
+    ad_period_shade_geom +
     geom_segment(
         data = daily_downloads_df %>%
             filter(
