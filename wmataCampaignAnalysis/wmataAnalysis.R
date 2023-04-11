@@ -64,8 +64,10 @@ released_since_episode_ids <- function(
 
 #### REFERENCES DFs  ####
     ######## Reference info:
-    ######## Digital (train platforms) : 01/19/2023 -- 02/15/2023
-    ######## Static (train cars): 01/16/2023 -- 02/12/2023
+    ######## WMATA Digital (train platforms) : 01/19/2023 -- 02/15/2023
+    ######## WMATA Static (train cars): 01/16/2023 -- 02/12/2023
+    ######## Economist Media Group 04-01-2021 -- 04-30-2021
+    ######## Vox Media: 06-01-2021 -- 06-15-2021
 
 titles_ids_df <- episodes_core_data_in %>%
     select(episode_id, title) %>%
@@ -290,31 +292,88 @@ stargazer(
 ##### NAIVE EPISODE-LEVEL OLS #####
 t_14_ols_df <- daily_downloads_df %>%
     select(
-        episode_id, date, daily_downloads, days_since_release, cumulative_downloads, release_date
-    ) %>%
-    group_by(date) %>%
-    mutate(
-        gap_to_release = as.integer(
-            interval(start = date, end = release_date)
-        )
-    ) %>%
-    arrange(date, desc(gap_to_release)) %>%
-    mutate(
-        ordered_from_closest_release = row_number(),
-        active_back_expired_catalog = case_when(
-            ordered_from_closest_release == 1 ~ 1,
-            (ordered_from_closest_release >= 2) & (ordered_from_closest_release <= 6) ~ 2,
-            ordered_from_closest_release >= 7 ~ 3
-        )
-    ) %>%
-    view()
-
-
-    filter(episode_id) %>%
-    mutate(
+        episode_id, date, daily_downloads,
+        days_since_release, cumulative_downloads,
         release_date
+    ) %>%
+    ungroup() %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            days_since_release == 14,
+            cumulative_downloads, NA
+        )
+    ) %>%
+    filter(!is.na(downloads_t_14)) %>%
+    mutate(
+        trailing5_t_14_avg = rollmean(
+            downloads_t_14,
+            k = 5,
+            fill = NA,
+            align = "left"
+        ),
+        aired_wmata_general_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                interval(ymd("2023-01-16"), ymd("2023-02-15"))
+            ),
+            1, 0
+        ),
+        aired_wmata_digital_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                interval(ymd("2023-01-19"), ymd("2023-02-15"))
+            ),
+            1, 0
+        ),
+        aired_wamta_static_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                interval(ymd("2023-01-16"), ymd("2023-02-12"))
+            ),
+            1, 0
+        ),
+        aired_economist_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                interval(ymd("2021-04-01"), ymd("2021-04-30"))
+            ),
+            1, 0
+        ),
+        aired_vox_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                interval(ymd("2021-06-01"), ymd("2021-06-15"))
+            ),
+            1, 0
+        )
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        aired_first_ad_experiment = ifelse(
+            1 %in% c(aired_economist_ad, aired_vox_ad),
+            1, 0
+        ),
+        aired_any_ad_experiment = ifelse(
+            1 %in% c(aired_wmata_general_ad, aired_first_ad_experiment),
+            1, 0
+        )
     )
 
+t_14_ols_trailing_only <- lm(
+    downloads_t_14 ~ trailing5_t_14_avg,
+    data = t_14_ols_df
+)
+t_14_ols_trailing_wmata_general <- lm(
+    downloads_t_14 ~ trailing5_t_14_avg + aired_wmata_digital_ad,
+    data = t_14_ols_df
+)
+t_14_ols_trailing_first_ad_experiment <- lm(
+    downloads_t_14 ~ trailing5_t_14_avg + aired_wmata_digital_ad + aired_first_ad_experiment,
+    data = t_14_ols_df
+)
+
+t_14_ols_models <- list(
+    t_14_ols_trailing_only,
+    t_14_ols_trailing_wmata_general,
+    t_14_ols_trailing_first_ad_experiment
+)
+
+stargazer(t_14_ols_models)
 
 
 ##### REGRESSION TABLES #####
