@@ -170,6 +170,10 @@ stigler_palettes <- list(
         "celeste",
         "midnight_green"
     ),
+    `red_to_blue` = stigler_cols(
+        "booth_maroon",
+        "booth_teal"
+    ),
     `reds_2` = stigler_cols(
         "black_bean",
         "pale_tangerine"

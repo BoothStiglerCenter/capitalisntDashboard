@@ -1,13 +1,34 @@
 #### PREAMBLE ####
 library(tidyverse)
 library(lubridate)
+library(stargazer)
+library(sandwich)
 library(scales)
 library(ggtext)
 library(zoo)
-library(stargazer)
 source("theme_materials/theme_stigler.R")
 `%notin%` <- Negate(`%in%`)
+
+##### REFERENCE VALUES #####
 today_dt <- today()
+
+wmata_digital_interval <- interval(
+    ymd("2023-01-19"), ymd("2023-02-15")
+)
+wmata_static_interval <- interval(
+    ymd("2023-01-16"), ymd("2023-02-12")
+)
+wmata_general_interval <- interval(
+    ymd("2023-01-16"), ymd("2023-02-15")
+)
+economist_interval <- interval(
+    ymd("2021-04-01"), ymd("2021-04-30")
+)
+vox_interval <- interval(
+    ymd("2021-06-01"), ymd("2021-06-15")
+)
+
+
 
 #### READING DATA IN ####
 dmv_data_in <- read_csv(
@@ -71,8 +92,7 @@ released_since_episode_ids <- function(
 
 titles_ids_df <- episodes_core_data_in %>%
     select(episode_id, title) %>%
-    distinct() %>%
-    view()
+    distinct()
 
 release_dates_df <- episodes_core_data_in %>%
     select(episode_id, interval) %>%
@@ -289,7 +309,7 @@ stargazer(
 )
 
 
-##### NAIVE EPISODE-LEVEL OLS #####
+##### NAIVE T=14 EPISODE-LEVEL OLS #####
 t_14_ols_df <- daily_downloads_df %>%
     select(
         episode_id, date, daily_downloads,
@@ -313,31 +333,31 @@ t_14_ols_df <- daily_downloads_df %>%
         ),
         aired_wmata_general_ad = ifelse(
             interval(release_date, date) %>% int_overlaps(
-                interval(ymd("2023-01-16"), ymd("2023-02-15"))
+                wmata_general_interval
             ),
             1, 0
         ),
         aired_wmata_digital_ad = ifelse(
             interval(release_date, date) %>% int_overlaps(
-                interval(ymd("2023-01-19"), ymd("2023-02-15"))
+                wmata_digital_interval
             ),
             1, 0
         ),
         aired_wamta_static_ad = ifelse(
             interval(release_date, date) %>% int_overlaps(
-                interval(ymd("2023-01-16"), ymd("2023-02-12"))
+                wmata_static_interval
             ),
             1, 0
         ),
         aired_economist_ad = ifelse(
             interval(release_date, date) %>% int_overlaps(
-                interval(ymd("2021-04-01"), ymd("2021-04-30"))
+                economist_interval
             ),
             1, 0
         ),
         aired_vox_ad = ifelse(
             interval(release_date, date) %>% int_overlaps(
-                interval(ymd("2021-06-01"), ymd("2021-06-15"))
+                vox_interval
             ),
             1, 0
         )
@@ -358,13 +378,24 @@ t_14_ols_trailing_only <- lm(
     downloads_t_14 ~ trailing5_t_14_avg,
     data = t_14_ols_df
 )
+t_14_ols_trailing_only_RSE <- sqrt(
+    diag(vcovHC(t_14_ols_trailing_only))
+)
+
 t_14_ols_trailing_wmata_general <- lm(
     downloads_t_14 ~ trailing5_t_14_avg + aired_wmata_digital_ad,
     data = t_14_ols_df
 )
+t_14_ols_trailing_wmata_general_RSE <- sqrt(
+    diag(vcovHC(t_14_ols_trailing_wmata_general))
+)
+
 t_14_ols_trailing_first_ad_experiment <- lm(
     downloads_t_14 ~ trailing5_t_14_avg + aired_wmata_digital_ad + aired_first_ad_experiment,
     data = t_14_ols_df
+)
+t_14_ols_trailing_first_ad_experiment_RSE <- sqrt(
+    diag(vcovHC(t_14_ols_trailing_first_ad_experiment))
 )
 
 t_14_ols_models <- list(
@@ -372,12 +403,258 @@ t_14_ols_models <- list(
     t_14_ols_trailing_wmata_general,
     t_14_ols_trailing_first_ad_experiment
 )
+t_14_ols_RSEs <- list(
+    t_14_ols_trailing_only_RSE,
+    t_14_ols_trailing_wmata_general_RSE,
+    t_14_ols_trailing_first_ad_experiment_RSE
+)
 
-stargazer(t_14_ols_models)
+
+stargazer(
+    t_14_ols_models,
+    dep.var.labels = c("Cumulative downloads ($t=14$)"),
+    covariate.labels = c("Trailing Avg. ($n=5$)", "WMATA Ad.", "Econ./Vox Ad."),
+    omit.stat = c("ser", "f", "rsq"),
+    no.space = TRUE,
+    se = t_14_ols_RSEs
+)
+
+
+##### NAIVE T=28 EPISODE-LEVEL OLS #####
+t_28_ols_df <- daily_downloads_df %>%
+    select(
+        episode_id, date, daily_downloads,
+        days_since_release, cumulative_downloads,
+        release_date
+    ) %>%
+    ungroup() %>%
+    mutate(
+        downloads_t_14 = ifelse(
+            days_since_release == 14,
+            cumulative_downloads, NA
+        ),
+        downloads_t_28 = ifelse(
+            days_since_release == 28,
+            cumulative_downloads, NA
+        )
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        downloads_t_14 = max(downloads_t_14, na.rm = TRUE),
+        downloads_t_28 = max(downloads_t_28, na.rm = TRUE),
+        downloads_t_14 = ifelse(
+            downloads_t_14 == -Inf,
+            NA, downloads_t_14
+        ),
+        downloads_t_28 = ifelse(
+            downloads_t_28 == -Inf,
+            NA, downloads_t_28
+        )
+    ) %>%
+    distinct(episode_id, .keep_all = TRUE) %>%
+    ungroup() %>%
+    mutate(
+        trailing5_t_14_avg = rollmean(
+            downloads_t_14,
+            k = 5,
+            fill = NA,
+            align = "left"
+        ),
+        trailing5_t_28_avg = rollmean(
+            downloads_t_28,
+            k = 5,
+            fill = NA,
+            align = "left"
+        ),
+        aired_wmata_general_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_general_interval
+            ),
+            1, 0
+        ),
+        aired_wmata_digital_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_digital_interval
+            ),
+            1, 0
+        ),
+        aired_wamta_static_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_static_interval
+            ),
+            1, 0
+        ),
+        aired_economist_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                economist_interval
+            ),
+            1, 0
+        ),
+        aired_vox_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                vox_interval
+            ),
+            1, 0
+        )
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        aired_first_ad_experiment = ifelse(
+            1 %in% c(aired_economist_ad, aired_vox_ad),
+            1, 0
+        ),
+        aired_any_ad_experiment = ifelse(
+            1 %in% c(aired_wmata_general_ad, aired_first_ad_experiment),
+            1, 0
+        )
+    )
+
+t_28_ols_trailing_only <- lm(
+    downloads_t_28 ~ trailing5_t_28_avg,
+    data = t_28_ols_df
+)
+t_28_ols_trailing_only_RSE <- sqrt(
+    diag(vcovHC(t_28_ols_trailing_only))
+)
+
+t_28_ols_trailing_wmata_general <- lm(
+    downloads_t_28 ~ trailing5_t_28_avg + aired_wmata_digital_ad,
+    data = t_28_ols_df
+)
+t_28_ols_trailing_wmata_general_RSE <- sqrt(
+    diag(vcovHC(t_28_ols_trailing_wmata_general))
+)
+
+t_28_ols_trailing_first_ad_experiment <- lm(
+    downloads_t_28 ~ trailing5_t_28_avg + aired_wmata_digital_ad + aired_first_ad_experiment,
+    data = t_28_ols_df
+)
+t_28_ols_trailing_first_ad_experiment_RSE <- sqrt(
+    diag(vcovHC(t_28_ols_trailing_first_ad_experiment))
+)
+
+t_28_ols_trailing_autoreg <- lm(
+    downloads_t_28 ~ trailing5_t_28_avg + downloads_t_28,
+    data = t_28_ols_df
+)
+t_28_ols_trailing_autoreg_RSE <- sqrt(
+    diag(vcovHC(t_28_ols_trailing_autoreg))
+)
+
+t_28_ols_trailing_twice_autoreg <- lm(
+    downloads_t_28 ~ trailing5_t_14_avg + trailing5_t_28_avg,
+    data = t_28_ols_df
+)
+t_28_ols_trailing_twice_autoreg_RSE <- sqrt(
+    diag(vcovHC(t_28_ols_trailing_twice_autoreg))
+)
+
+t_28_ols_models <- list(
+    t_28_ols_trailing_only,
+    t_28_ols_trailing_wmata_general,
+    t_28_ols_trailing_first_ad_experiment,
+    t_28_ols_trailing_autoreg,
+    t_28_ols_trailing_twice_autoreg
+)
+t_28_ols_RSEs <- list(
+    t_28_ols_trailing_only_RSE,
+    t_28_ols_trailing_wmata_general_RSE,
+    t_28_ols_trailing_first_ad_experiment_RSE,
+    t_28_ols_trailing_autoreg_RSE,
+    t_28_ols_trailing_twice_autoreg_RSE
+)
+
+stargazer(
+    t_28_ols_models,
+    dep.var.labels = c("Cumulative downloads ($t=28$)"),
+    covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Econ./Vox Ad."),
+    omit.stat = c("ser", "f", "rsq"),
+    no.space = TRUE,
+    se = t_28_ols_RSEs
+)
+
+
+
+##### DAILY DOWNLOADS DISCONTINUITY/KINK ####
+daily_slope_kink_df <- daily_downloads_df %>%
+    mutate(
+        in_wmata_general_ad = ifelse(
+            date %within% wmata_general_interval,
+            1, 0
+        ),
+        in_wmata_digital_ad = ifelse(
+            date %within% wmata_digital_interval,
+            1, 0
+        ), 
+        in_wmata_static_ad = ifelse(
+            date %within% wmata_static_interval,
+            1, 0
+        ),
+        in_economist_ad = ifelse(
+            date %within% economist_interval,
+            1, 0
+        ),
+        in_vox_ad = ifelse(
+            date %within% vox_interval,
+            1, 0
+        ),
+        in_first_experiment = ifelse(
+            1 %in% c(in_vox_ad, in_economist_ad),
+            1, 0
+        ),
+        in_any_ad = ifelse(
+            1 %in% c(in_first_experiment, in_wmata_general_ad),
+            1, 0
+        )
+   ) %>%
+   group_by(episode_id) %>%
+   mutate(
+    log_days_since_release = log(days_since_release)
+   ) %>%
+   view()
+
+
+daily_slope_kink_baseline <- lm(
+    cumulative_downloads ~ log_days_since_release,
+    data = daily_slope_kink_df
+)
+
 
 
 ##### REGRESSION TABLES #####
 
+###### NAIVE OLS MODELS ######
+naive_ols_models <- list(
+    t_14_ols_trailing_only,
+    t_14_ols_trailing_wmata_general,
+    t_14_ols_trailing_first_ad_experiment,
+    t_28_ols_trailing_only,
+    t_28_ols_trailing_wmata_general,
+    t_28_ols_trailing_first_ad_experiment,
+    t_28_ols_trailing_autoreg,
+    t_28_ols_trailing_twice_autoreg
+)
+
+naive_ols_models_RSEs <- list(
+    t_14_ols_trailing_only_RSE,
+    t_14_ols_trailing_wmata_general_RSE,
+    t_14_ols_trailing_first_ad_experiment_RSE,
+    t_28_ols_trailing_only_RSE,
+    t_28_ols_trailing_wmata_general_RSE,
+    t_28_ols_trailing_first_ad_experiment_RSE,
+    t_28_ols_trailing_autoreg_RSE,
+    t_28_ols_trailing_twice_autoreg_RSE
+)
+
+stargazer(
+    naive_ols_models,
+    dep.var.labels = c("Downloads ($t=14$)", "Downloads ($t=28$)"),
+    order = c("trailing5_t_14_avg", "trailing5_t_28_avg"),
+    covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Economist/Vox Ad."),
+    no.space = TRUE,
+    omit.stat = c("ser", "f", "rsq"),
+    se = naive_ols_models_RSEs
+)
 
 ### PLOTS ###
 
@@ -529,6 +806,7 @@ recent_20_episodes_cumul_perf <- ggplot(
     ) +
     scale_color_stigler(
         "blues_2",
+        # "red_to_blue",
         reverse = TRUE,
         discrete = FALSE,
         name = "",
