@@ -619,6 +619,42 @@ daily_slope_kink_baseline <- lm(
     data = daily_slope_kink_df
 )
 
+daily_slope_kink_advertisement_binary_any_ad <- lm(
+    cumulative_downloads ~ log_days_since_release + in_any_ad,
+    data = daily_slope_kink_df
+)
+
+daily_slope_kink_advertisement_binary_any_interaction <- lm(
+    cumulative_downloads ~ log_days_since_release + in_any_ad + log_days_since_release*in_any_ad,
+    data = daily_slope_kink_df
+)
+
+daily_slope_kink_advertisement_binary_wmata_general_interaction <- lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_general_ad,
+    data = daily_slope_kink_df
+)
+
+recent_20_daily_slope_kink_advertisement_binary_wmata_general_interaction <- lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_general_ad,
+    data = daily_slope_kink_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(n = 20, release_dates_df)
+        )
+)
+
+wmata_treated_only_daily_slope_kink_advertisement_binary_wamata_general_interaction <- lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_digital_ad,
+    data = daily_slope_kink_df %>%
+        filter(
+            episode_id %in% released_since_episode_ids(
+                cutoff_date_str = "2023-01-16",
+                release_dates_df
+            )
+        )
+)
+
+
+
 
 
 ##### REGRESSION TABLES #####
