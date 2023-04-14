@@ -3,6 +3,7 @@ library(tidyverse)
 library(lubridate)
 library(stargazer)
 library(sandwich)
+library(fixest)
 library(scales)
 library(ggtext)
 library(zoo)
@@ -75,6 +76,26 @@ released_since_episode_ids <- function(
         ) %>%
         dplyr::filter(
             release_date >= lubridate::ymd(cutoff_date_str)
+        ) %>%
+        dplyr::pull(episode_id)
+
+    return(episode_ids)
+}
+
+released_between_episode_ids <- function(
+    cutoff_period_start_str,
+    cutoff_period_end_str,
+    release_dates_df
+) {
+    episode_ids <- release_dates_df %>%
+        dplyr::arrange(
+            dplyr::desc(release_date)
+        ) %>%
+        dplyr::filter(
+            release_date %within% lubridate::interval(
+                lubridate::ymd(cutoff_period_start_str),
+                lubridate::ymd(cutoff_period_end_str)
+            )
         ) %>%
         dplyr::pull(episode_id)
 
@@ -585,7 +606,7 @@ daily_slope_kink_df <- daily_downloads_df %>%
         in_wmata_digital_ad = ifelse(
             date %within% wmata_digital_interval,
             1, 0
-        ), 
+        ),
         in_wmata_static_ad = ifelse(
             date %within% wmata_static_interval,
             1, 0
@@ -606,12 +627,11 @@ daily_slope_kink_df <- daily_downloads_df %>%
             1 %in% c(in_first_experiment, in_wmata_general_ad),
             1, 0
         )
-   ) %>%
-   group_by(episode_id) %>%
-   mutate(
-    log_days_since_release = log(days_since_release)
-   ) %>%
-   view()
+    ) %>%
+    group_by(episode_id) %>%
+    mutate(
+        log_days_since_release = log(days_since_release)
+    )
 
 
 daily_slope_kink_baseline <- lm(
@@ -642,23 +662,168 @@ recent_20_daily_slope_kink_advertisement_binary_wmata_general_interaction <- lm(
         )
 )
 
-wmata_treated_only_daily_slope_kink_advertisement_binary_wamata_general_interaction <- lm(
-    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_digital_ad,
+recent_20_daily_slope_kink_advertisement_fe <- feols(
+    cumulative_downloads ~ log_days_since_release + in_wmata_digital_ad + log_days_since_release:in_wmata_general_ad | episode_id,
     data = daily_slope_kink_df %>%
         filter(
-            episode_id %in% released_since_episode_ids(
-                cutoff_date_str = "2023-01-16",
-                release_dates_df
-            )
+            episode_id %in% recent_n_episode_ids(n =  20, release_dates_df)
         )
+)
+
+feols(
+    cumulative_downloads ~ log_days_since_release + in_wmata_digital_ad + log_days_since_release:in_wmata_general_ad | episode_id,
+    data = daily_slope_kink_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(n =  25, release_dates_df)
+        )
+)
+
+feols(
+    cumulative_downloads ~ log_days_since_release + in_wmata_digital_ad + log_days_since_release:in_wmata_general_ad | episode_id,
+    data = daily_slope_kink_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(n =  39, release_dates_df),
+            episode_id %notin% recent_n_episode_ids(n = 9, release_dates_df)
+        )
+)
+
+for (episode in daily_slope_kink_df$episode_id %>% unique()) {
+    df <- daily_slope_kink_df %>%
+        filter(
+            episode_id == episode
+        )
+    print(df$title %>% head(1))
+
+    daily_model <- lm(
+        cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
+        data = df
+        ) %>%
+        summary() %>%
+        print()
+
+
+    # plot <- ggplot(df) +
+    #     geom_point(
+    #         aes(
+    #             x = log_days_since_release,
+    #             y = cumulative_downloads,
+    #             color = as.factor(in_wmata_general_ad),
+    #         )
+    #     ) +
+    #     theme_minimal()
+}
+
+
+
+
+alltime_daily_slope_kink_advertisement_fe <- feols(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad | episode_id,
+    data = daily_slope_kink_df  
 )
 
 
 
 
+ggplot(daily_slope_kink_df %>%
+    filter(
+        episode_id %in% recent_n_episode_ids(n=20, release_dates_df)
+    )
+) +
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = in_wmata_general_ad,
+        )
+    ) +
+    theme_minimal()
+
+
+wmata_treated_only_daily_slope_kink_advertisement_binary_wamata_general_interaction <- lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_general_ad,
+    data = daily_slope_kink_df %>%
+        filter(
+            episode_id %in% released_between_episode_ids(
+            cutoff_period_start_str = "2022-11-01",
+            cutoff_period_end_str = "2023-01-01",
+            release_dates_df
+            )
+        )
+)
+
+tswift_model <- lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
+        data = daily_slope_kink_df %>%
+            filter(
+                title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
+            )
+)
+
+tswift_fitted_df <- data.frame(
+    cumulative_downloads_pred = predict(tswift_model, daily_slope_kink_df %>%
+            filter(
+                title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
+            )),
+    log_days_since_release = daily_slope_kink_df %>%
+            filter(
+                title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
+            ) %>%
+            select(log_days_since_release) %>%
+            pull(),
+    in_wmata_general_ad = daily_slope_kink_df %>%
+            filter(
+                title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
+            ) %>%
+            select(in_wmata_general_ad) %>%
+            pull()
+) %>%
+view()
+
+ggplot(
+    daily_slope_kink_df %>%
+        filter(
+            title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
+        )
+) +
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads
+        )
+    ) +
+    geom_line(
+        data = tswift_fitted_df,
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads_pred,
+            color = as.factor(in_wmata_general_ad)
+        ),
+        linewidth = 1.2
+    ) +
+    theme_minimal()
+
+
+ggplot(daily_slope_kink_df %>%
+    filter(
+        episode_id %in% released_between_episode_ids(
+            cutoff_period_start_str = "2022-11-01",
+            cutoff_period_end_str = "2023-01-01",
+            release_dates_df
+        )
+    )
+) +
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = in_wmata_general_ad
+        )
+    ) +
+    theme_minimal()
+
+
 
 ##### REGRESSION TABLES #####
-
 ###### NAIVE OLS MODELS ######
 naive_ols_models <- list(
     t_14_ols_trailing_only,
@@ -764,7 +929,8 @@ recent_podcast_moving_avg_decomp <- ggplot(
     scale_x_date(
         name = "Date",
         breaks = date_breaks("1 month"),
-        labels = label_date_short(format = c("%y", "%b"))
+        labels = label_date_short(format = c("%y", "%b")),
+        expand = expand_scale(mult = c(0,0.05))
     ) +
     labs(
         title = "**Capitalisn't: Composition of daily-downloads moving average**", 
@@ -810,8 +976,10 @@ alltime_podcast_moving_avg_decomp <- ggplot(
         position = "right"
     ) +
     scale_x_date(
+        name = "Date",
         breaks = date_breaks("3 month"),
-        labels = label_date_short(format = c("%y", "%b"))
+        labels = label_date_short(format = c("%y", "%b")),
+        expand = expansion(mult = c(0, 0.05))
     ) +
     labs(
         title = "**Capitalisn't: Composition of daily-downloads moving average**", 
@@ -849,7 +1017,8 @@ recent_20_episodes_cumul_perf <- ggplot(
         guide = "none"
     ) +
     scale_x_continuous(
-        expand = expand_scale(mult = c(0,0)),
+        name = "Days since release",
+        expand = expand_scale(mult = c(0, 0)),
         limits = c(0, 250)
     ) +
     scale_y_continuous(
@@ -885,13 +1054,17 @@ alltime_episodes_cumul_perf <- ggplot(
         discrete = FALSE,
         guide = "none"
     ) +
+    scale_x_continuous(
+        name = "Days since release",
+        expand = expand_scale(mult = c(0, 0)),
+        limits = c(0, 2200)
+    ) +
     scale_y_continuous(
         labels = scales::comma,
         position = "right",
         expand = expand_scale(mult = c(0, 0)),
         limits = c(0, 30000)
     ) +
-    # ggtitle("test") +
     labs(
         title = "**Capitalisn't: Cumulative daily downloads**",
         subtitle = "20 most recent episodes",
@@ -951,7 +1124,8 @@ recent_20_1142842_day_cumul_perf <- ggplot(
     ) +
     scale_x_date(
         labels = label_date_short(format = c("%y", "%b")),
-        breaks = date_breaks("1 month")
+        breaks = date_breaks("1 month"),
+        name = "Release date"
     ) +
     scale_y_continuous(
         labels = scales::comma,
@@ -1007,7 +1181,8 @@ all_1142842_day_cumul_perf <- ggplot(
     ) +
     scale_x_date(
         labels = label_date_short(format = c("%y", "%b")),
-        breaks = date_breaks("3 month")
+        breaks = date_breaks("3 month"),
+        name = "Release date"
     ) +
     scale_y_continuous(
         labels = scales::comma,
