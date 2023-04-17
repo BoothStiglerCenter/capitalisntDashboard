@@ -241,6 +241,56 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
+
+
+episode_locations_downloads_df <- episode_locations_data_in %>%
+    filter(
+        episode_id %in% recent_n_episode_ids(
+            n = 50,
+            release_dates_df
+        )
+    ) %>%
+    head(10000) %>%
+    left_join(
+        dmv_cities_df %>%
+            select(-"city_name"),
+        by = c("city_id", "state_id"),
+        multiple = "all"
+    ) %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    ) %>%
+    pivot_longer(
+        cols = -c(
+            "city_name",
+            "city_id",
+            "state_id",
+            "episode_id",
+            "relevant_msa",
+            "release_date"
+        ),
+        names_to = "date",
+        values_to = "cumulative_downloads"
+    ) %>%
+    mutate(
+        date = ymd(date),
+        relevant_msa = ifelse(
+            is.na(relevant_msa),
+            0, relevant_msa
+        )
+    ) %>%
+    head(10000) %>%
+    group_by(city_id, episode_id) %>%
+    mutate(
+        days_since_release = as.numeric(as.period(
+            interval(release_date, date),
+            unit = "days"
+        )) / as.numeric(days(1)),
+        log_days_since_release = log(days_since_release)
+    )
+
 ### REGRESSION ###
 ##### SUMMARY STATISTICS #####
 episode_level_summ_df <- daily_downloads_df %>%
@@ -821,7 +871,22 @@ ggplot(daily_slope_kink_df %>%
     ) +
     theme_minimal()
 
+##### DMV/WMATA DIFF-IN-DIFF #####
+dmv_wmata_did_df <- episode_locations_downloads_df %>%
+    mutate(
+        in_wmata_general_ad = ifelse(
+            date %within% wmata_general_interval,
+            1, 0
+        ),
+    ) %>%
+    view()
 
+
+lm(
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + relevant_msa+ in_wmata_general_ad:relevant_msa,
+    data = dmv_wmata_did_df
+) %>%
+summary()
 
 ##### REGRESSION TABLES #####
 ###### NAIVE OLS MODELS ######
