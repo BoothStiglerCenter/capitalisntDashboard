@@ -6,6 +6,8 @@ library(sandwich)
 library(fixest)
 library(scales)
 library(ggtext)
+library(lmtest)
+library(broom)
 library(zoo)
 source("theme_materials/theme_stigler.R")
 `%notin%` <- Negate(`%in%`)
@@ -313,7 +315,7 @@ episode_level_summ_df <- daily_downloads_df %>%
         downloads_t_28 = ifelse(
             downloads_t_28 == -Inf,
             NA, downloads_t_28
-        ),
+        )
     )
 
 stargazer(
@@ -727,53 +729,47 @@ feols(
         )
 )
 
-results_df <- release_dates_df
+daily_kink_results_df <- data.frame()
 
 for (episode in daily_slope_kink_df$episode_id %>% unique()) {
-    
+    episode_title <- titles_ids_df %>%
+        filter(episode_id == episode) %>%
+        select(title) %>%
+        pull()
+
     df <- daily_slope_kink_df %>%
         filter(
             episode_id == episode
         )
-    print("###################################")
-    print(episode)
-    print("###################################")
+    # print("###################################")
+    # print(episode_title)
+    # print("###################################")
 
     daily_model <- lm(
         cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
         data = df
-    # )
-        ) %>%
-        summary() %>%
-        print()
+    )
 
-    # print('w')
+    daily_RSE_results <- coeftest(
+        daily_model,
+        vcov. = vcovHC(daily_model, type = "HC2")
+    ) %>%
+    tidy() %>%
+    mutate(
+        episode_id = episode,
+        title = episode_title
+    )
 
-    # daily_model_RSE <- tidy(
-    #     sqrt(
-    #         diag(vcovHC(daily_model, type = "HC2"))
-    #     )
-    # )
-    
-    # print('x')
-    # episode_level_kink_results_df <- tidy(daily_model) %>%
-    #     cbind(
-    #         tidy(daily_model_RSE) %>%
-    #         rename("RSE" = "x")
-    #     ) %>%
-    #     mutate(
-    #         episode_id = episode
-    #     )
-
-    # print('y')
-    # results_df <- results_df %>%
-    #     left_join(
-    #         episode_level_kink_results_df,
-    #         by = "episode_id",
-    #         multiple = "all"
-    #     )
+    daily_kink_results_df <- daily_kink_results_df %>%
+        rbind(daily_RSE_results)
 }
 
+daily_kink_results_df <- daily_kink_results_df %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    )
 
 
 
@@ -781,9 +777,6 @@ alltime_daily_slope_kink_advertisement_fe <- feols(
     cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad | episode_id,
     data = daily_slope_kink_df  
 )
-
-
-
 
 ggplot(daily_slope_kink_df %>%
     filter(
@@ -837,8 +830,7 @@ tswift_fitted_df <- data.frame(
             ) %>%
             select(in_wmata_general_ad) %>%
             pull()
-) %>%
-view()
+)
 
 ggplot(
     daily_slope_kink_df %>%
@@ -1163,6 +1155,7 @@ alltime_episodes_cumul_perf <- ggplot(
 alltime_episodes_cumul_perf
 
 ##### t={1,14,28,42} CUMULATIVE DOWNLOADS GGPLOTS #####
+
 recent_20_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
     filter(
@@ -1285,3 +1278,8 @@ all_1142842_day_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 all_1142842_day_cumul_perf
+
+
+
+
+#### END ####
