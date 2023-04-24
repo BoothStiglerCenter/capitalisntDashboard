@@ -13,16 +13,17 @@ theme_stigler <- function() {
         italic = "theme_materials/Trade Gothic LT Std/Trade Gothic LT Std Oblique.otf"
     )
     showtext_auto()
+    showtext_opts(dpi = 300)
 
     font <- "Trade Gothic LT Std"
     theme_minimal() %+replace%
         theme(
 
             ### DEBUGGING
-            plot.background = element_rect(
-                color = "palevioletred1",
-                linewidth = 3
-            ),
+            # plot.background = element_rect(
+            #     color = "palevioletred1",
+            #     linewidth = 3
+            # ),
 
             ### Setup
             plot.margin = margin(t = 20, r = 20, b = 20, l = 20),

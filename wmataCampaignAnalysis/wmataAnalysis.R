@@ -241,16 +241,7 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
-
-
 episode_locations_downloads_df <- episode_locations_data_in %>%
-    filter(
-        episode_id %in% recent_n_episode_ids(
-            n = 50,
-            release_dates_df
-        )
-    ) %>%
-    head(10000) %>%
     left_join(
         dmv_cities_df %>%
             select(-"city_name"),
@@ -281,7 +272,6 @@ episode_locations_downloads_df <- episode_locations_data_in %>%
             0, relevant_msa
         )
     ) %>%
-    head(10000) %>%
     group_by(city_id, episode_id) %>%
     mutate(
         days_since_release = as.numeric(as.period(
@@ -737,30 +727,51 @@ feols(
         )
 )
 
+results_df <- release_dates_df
+
 for (episode in daily_slope_kink_df$episode_id %>% unique()) {
+    
     df <- daily_slope_kink_df %>%
         filter(
             episode_id == episode
         )
-    print(df$title %>% head(1))
+    print("###################################")
+    print(episode)
+    print("###################################")
 
     daily_model <- lm(
         cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
         data = df
+    # )
         ) %>%
         summary() %>%
         print()
 
+    # print('w')
 
-    # plot <- ggplot(df) +
-    #     geom_point(
-    #         aes(
-    #             x = log_days_since_release,
-    #             y = cumulative_downloads,
-    #             color = as.factor(in_wmata_general_ad),
-    #         )
-    #     ) +
-    #     theme_minimal()
+    # daily_model_RSE <- tidy(
+    #     sqrt(
+    #         diag(vcovHC(daily_model, type = "HC2"))
+    #     )
+    # )
+    
+    # print('x')
+    # episode_level_kink_results_df <- tidy(daily_model) %>%
+    #     cbind(
+    #         tidy(daily_model_RSE) %>%
+    #         rename("RSE" = "x")
+    #     ) %>%
+    #     mutate(
+    #         episode_id = episode
+    #     )
+
+    # print('y')
+    # results_df <- results_df %>%
+    #     left_join(
+    #         episode_level_kink_results_df,
+    #         by = "episode_id",
+    #         multiple = "all"
+    #     )
 }
 
 
@@ -872,14 +883,27 @@ ggplot(daily_slope_kink_df %>%
     theme_minimal()
 
 ##### DMV/WMATA DIFF-IN-DIFF #####
+
+# Generate the episode IDs once because otherwise, for 4million+
+# observations, the function gets called every time and it gets SLOW
+# Even as it is, the mutate takes quite a bit of time
+wmata_treated_episode_ids <- released_between_episode_ids(
+    "2022-07-07",
+    "2023-01-16",
+    release_dates_df
+)
 dmv_wmata_did_df <- episode_locations_downloads_df %>%
+    filter(
+        episode_id %in% wmata_treated_episode_ids,
+        !is.na(log_days_since_release),
+        log_days_since_release != -Inf
+    ) %>%
     mutate(
         in_wmata_general_ad = ifelse(
             date %within% wmata_general_interval,
             1, 0
-        ),
-    ) %>%
-    view()
+        )
+    )
 
 
 lm(
