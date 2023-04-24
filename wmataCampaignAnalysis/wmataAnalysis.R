@@ -730,6 +730,7 @@ feols(
 )
 
 daily_kink_results_df <- data.frame()
+daily_kink_no_intercept_results_df <- data.frame()
 
 for (episode in daily_slope_kink_df$episode_id %>% unique()) {
     episode_title <- titles_ids_df %>%
@@ -741,12 +742,16 @@ for (episode in daily_slope_kink_df$episode_id %>% unique()) {
         filter(
             episode_id == episode
         )
-    # print("###################################")
+    # print("#####################################################")
     # print(episode_title)
-    # print("###################################")
 
     daily_model <- lm(
         cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
+        data = df
+    )
+
+    daily_model_no_intercept <- lm(
+        cumulative_downloads ~ log_days_since_release + log_days_since_release:in_wmata_general_ad,
         data = df
     )
 
@@ -760,8 +765,34 @@ for (episode in daily_slope_kink_df$episode_id %>% unique()) {
         title = episode_title
     )
 
+    # coeftest(
+    #     daily_model,
+    #     vcov. = vcovHC(daily_model, type = "HC2")
+    # ) %>%
+    # print()
+    # print("--------------------------------------------------")
+    # coeftest(
+    #     daily_model_no_intercept,
+    #     vcov. = vcovHC(daily_model_no_intercept, type = "HC2")
+    # ) %>%
+    # print()
+
+    daily_no_intercept_RSE_results <- coeftest(
+        daily_model_no_intercept,
+        vcov. = vcovHC(daily_model_no_intercept, type = "HC2")
+    ) %>%
+    tidy() %>%
+    mutate(
+        episode_id = episode,
+        title = episode_title
+    )
+
+
     daily_kink_results_df <- daily_kink_results_df %>%
         rbind(daily_RSE_results)
+
+    daily_kink_no_intercept_results_df <- daily_kink_no_intercept_results_df %>%
+        rbind(daily_no_intercept_RSE_results)
 }
 
 daily_kink_results_df <- daily_kink_results_df %>%
@@ -771,26 +802,18 @@ daily_kink_results_df <- daily_kink_results_df %>%
         multiple = "all"
     )
 
+daily_kink_no_intercept_results_df <- daily_kink_no_intercept_results_df %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    )
+
 
 alltime_daily_slope_kink_advertisement_fe <- feols(
     cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad | episode_id,
-    data = daily_slope_kink_df  
+    data = daily_slope_kink_df 
 )
-
-ggplot(daily_slope_kink_df %>%
-    filter(
-        episode_id %in% recent_n_episode_ids(n=20, release_dates_df)
-    )
-) +
-    geom_point(
-        aes(
-            x = log_days_since_release,
-            y = cumulative_downloads,
-            color = in_wmata_general_ad,
-        )
-    ) +
-    theme_minimal()
-
 
 wmata_treated_only_daily_slope_kink_advertisement_binary_wamata_general_interaction <- lm(
     cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_general_ad,
