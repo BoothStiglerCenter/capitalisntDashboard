@@ -3,6 +3,8 @@ library(tidyverse)
 library(lubridate)
 library(stargazer)
 library(sandwich)
+library(progress)
+library(data.table)
 library(fixest)
 library(scales)
 library(ggtext)
@@ -243,43 +245,86 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
-episode_locations_downloads_df <- episode_locations_data_in %>%
-    left_join(
-        dmv_cities_df %>%
-            select(-"city_name"),
-        by = c("city_id", "state_id"),
-        multiple = "all"
+
+episode_locations_data_dt <- data.table(
+    episode_locations_data_in %>%
+        filter(
+            episode_id %in% released_since_episode_ids(
+                cutoff_date_str = "2020-09-24",
+                release_dates_df
+            )
+        ),
+    key = c("city_id", "episode_id")
+)
+
+dmv_cities_dt <- data.table(
+    dmv_cities_df %>%
+        select(-c(
+            "city_name",
+            "state_id"
+        )),
+    key = "city_id"
+)
+
+release_dates_dt <- data.table(
+    release_dates_df,
+    key = "episode_id"
+)
+
+
+episode_locations_downloads_dt <- episode_locations_data_dt %>%
+    merge(
+        dmv_cities_dt,
+        by = "city_id", all = TRUE
+    ) %>%
+    setDT(key = c("episode_id", "city_id")) %>%
+    merge(
+        release_dates_dt,
+        by = "episode_id", all = TRUE
+    )
+
+episode_locations_downloads_dt[, "relevant_msa"][is.na(episode_locations_downloads_dt[, "relevant_msa"])] <- 0
+print(nrow(episode_locations_downloads_dt))
+
+
+episode_locations_downloads_dt <- episode_locations_downloads_dt[!is.na(episode_id),]
+print(nrow(episode_locations_downloads_dt))
+episode_locations_downloads_dt <- episode_locations_downloads_dt[!is.na(city_id),]
+print(nrow(episode_locations_downloads_dt))
+
+episode_locations_downloads_dt <- episode_locations_downloads_dt[,
+    lapply(.SD, sum, na.rm = TRUE),
+    by = c("episode_id", "relevant_msa"),
+    .SDcols = 5:232
+] %>%
+    as_tibble() %>%
+    view()
+
+
+episode_locations_msa_downloads_df <- episode_locations_downloads_dt %>%
+    pivot_longer(
+        cols = -c("episode_id", "relevant_msa"),
+        names_to = "date",
+        values_to = "cumulative_downloads"
     ) %>%
     left_join(
         release_dates_df,
         by = "episode_id",
         multiple = "all"
     ) %>%
-    pivot_longer(
-        cols = -c(
-            "city_name",
-            "city_id",
-            "state_id",
-            "episode_id",
-            "relevant_msa",
-            "release_date"
-        ),
-        names_to = "date",
-        values_to = "cumulative_downloads"
-    ) %>%
     mutate(
         date = ymd(date),
-        relevant_msa = ifelse(
-            is.na(relevant_msa),
-            0, relevant_msa
-        )
+        days_since_release = as.numeric(
+            as.period(
+                interval(release_date, date),
+                unit = "days"
+            )
+        ) / as.numeric(days(1)),
     ) %>%
-    group_by(city_id, episode_id) %>%
+    filter(
+        days_since_release > 0
+    ) %>%
     mutate(
-        days_since_release = as.numeric(as.period(
-            interval(release_date, date),
-            unit = "days"
-        )) / as.numeric(days(1)),
         log_days_since_release = log(days_since_release)
     )
 
@@ -1308,6 +1353,12 @@ all_1142842_day_cumul_perf
 #### DAILY-KINK SIGNIFICANCE PLOTS #####
 ggplot(
     daily_kink_results_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(
+                n = 50,
+                release_dates_df
+            )
+        ) %>%
         mutate(
             stars = as.factor(
                 case_when(
@@ -1316,7 +1367,7 @@ ggplot(
                     (p.value >= 0.05) & (p.value < 0.10) ~ "*",
                     TRUE ~ ""
                 )
-            ),
+            )
         ) %>%
         arrange(release_date)
 ) +
