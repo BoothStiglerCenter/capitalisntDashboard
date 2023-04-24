@@ -772,7 +772,6 @@ daily_kink_results_df <- daily_kink_results_df %>%
     )
 
 
-
 alltime_daily_slope_kink_advertisement_fe <- feols(
     cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad | episode_id,
     data = daily_slope_kink_df  
@@ -1281,5 +1280,44 @@ all_1142842_day_cumul_perf
 
 
 
+
+
+#### DAILY-KINK SIGNIFICANCE PLOTS #####
+ggplot(
+    daily_kink_results_df %>%
+        mutate(
+            stars = as.factor(
+                case_when(
+                    p.value < 0.01 ~ "***",
+                    (p.value >= 0.01) & (p.value < 0.05) ~ "**",
+                    (p.value >= 0.05) & (p.value < 0.10) ~ "*",
+                    TRUE ~ ""
+                )
+            ),
+        ) %>%
+        arrange(release_date)
+) +
+    geom_tile(
+        aes(
+            x = as.factor(release_date),
+            y = term,
+            fill = stars
+        )
+    ) +
+    geom_segment(
+        aes(
+            x = as.factor(ymd("2023-01-19")),
+            xend = as.factor(ymd("2023-01-19")),
+            y = Inf,
+            yend = 0,
+        ),
+        linewidth = 1,
+        color = "black"
+    ) +
+    scale_fill_stigler(
+        palette = "reds",
+        discrete = TRUE
+    ) +
+    theme_minimal()
 
 #### END ####
