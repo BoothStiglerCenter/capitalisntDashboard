@@ -296,10 +296,7 @@ episode_locations_downloads_dt <- episode_locations_downloads_dt[,
     lapply(.SD, sum, na.rm = TRUE),
     by = c("episode_id", "relevant_msa"),
     .SDcols = 5:232
-] %>%
-    as_tibble() %>%
-    view()
-
+] 
 
 episode_locations_msa_downloads_df <- episode_locations_downloads_dt %>%
     pivot_longer(
@@ -943,6 +940,39 @@ ggplot(daily_slope_kink_df %>%
 
 ##### DMV/WMATA DIFF-IN-DIFF #####
 
+dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
+    left_join(
+        titles_ids_df,
+        by = "episode_id",
+        multiple = "all"
+    )  %>%
+    mutate(
+        aired_wmata_general_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_general_interval
+            ),
+            1, 0
+        ),
+        aired_wmata_digital_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_digital_interval
+            ),
+            1, 0
+        ),
+        aired_wamta_static_ad = ifelse(
+            interval(release_date, date) %>% int_overlaps(
+                wmata_static_interval
+            ),
+            1, 0
+        )
+    ) %>%
+    view()
+
+
+
+
+
+
 # Generate the episode IDs once because otherwise, for 4million+
 # observations, the function gets called every time and it gets SLOW
 # Even as it is, the mutate takes quite a bit of time
@@ -1393,5 +1423,38 @@ ggplot(
         discrete = TRUE
     ) +
     theme_minimal()
+
+#### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
+
+
+for (episode in dmv_msa_did_df$episode_id %>% unique()) {
+
+    title <- dmv_msa_did_df %>% 
+        filter(episode_id == episode) %>%
+        select(title) %>%
+        distinct() %>%
+        pull()
+
+    plot <- ggplot(dmv_msa_did_df %>%
+        filter(episode_id == episode)
+    ) +
+        geom_point(
+            aes(
+                x = log_days_since_release,
+                y = cumulative_downloads,
+                color = relevant_msa,
+                group = relevant_msa
+            )
+        ) +
+        labs(
+            title = title
+        ) +
+        theme_stigler()
+
+    plot
+
+}
+
+
 
 #### END ####
