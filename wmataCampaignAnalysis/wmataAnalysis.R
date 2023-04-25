@@ -362,7 +362,7 @@ episode_level_summ_df <- daily_downloads_df %>%
 
 stargazer(
     as.data.frame(episode_level_summ_df),
-    summary.stat = c("min", "p25", "sd", "mean", "median", "p75", "max", "n"),
+    summary.stat = c("min", "p25", "mean", "median", "p75", "max", "n"),
     digits = 1,
     style = "qje"
 )
@@ -408,7 +408,7 @@ recent_20_episode_level_summ_df <- daily_downloads_df %>%
 
 stargazer(
     as.data.frame(recent_20_episode_level_summ_df),
-    summary.stat = c("min", "p25", "sd", "mean", "median", "p75", "max", "n"),
+    summary.stat = c("min", "p25", "mean", "median", "p75", "max", "n"),
     digits = 1,
     style = "qje"
 )
@@ -1132,6 +1132,11 @@ recent_podcast_moving_avg_decomp <- ggplot(
     ) +
     theme_stigler()
 recent_podcast_moving_avg_decomp
+ggsave(
+    plot = recent_podcast_moving_avg_decomp,
+    filename = "wmataCampaignAnalysis/figures/recent_podcast_moving_avg_decomp.png",
+    dpi = 300
+)
 
 alltime_podcast_moving_avg_decomp <- ggplot(
     podcast_daily_downloads_df %>%
@@ -1181,6 +1186,11 @@ alltime_podcast_moving_avg_decomp <- ggplot(
     ) +
     theme_stigler()
 alltime_podcast_moving_avg_decomp
+ggsave(
+    plot = alltime_podcast_moving_avg_decomp,
+    filename = "wmataCampaignAnalysis/figures/alltime_podcast_moving_avg_decomp.png",
+    dpi = 300
+)
 
 ##### CUMULATIVE DOWNLOADS GGPLOTS #####
 recent_20_episodes_cumul_perf <- ggplot(
@@ -1227,6 +1237,11 @@ recent_20_episodes_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 recent_20_episodes_cumul_perf
+ggsave(
+    plot = recent_20_episodes_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/recent_20_episodes_cumul_perf.png",
+    dpi = 300
+)
 
 alltime_episodes_cumul_perf <- ggplot(
     daily_downloads_df %>%
@@ -1265,6 +1280,11 @@ alltime_episodes_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 alltime_episodes_cumul_perf
+ggsave(
+    plot = alltime_episodes_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/alltime_episodes_cumul_perf.png",
+    dpi = 300
+)
 
 ##### t={1,14,28,42} CUMULATIVE DOWNLOADS GGPLOTS #####
 
@@ -1333,6 +1353,11 @@ recent_20_1142842_day_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 recent_20_1142842_day_cumul_perf
+ggsave(
+    plot = recent_20_1142842_day_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/recent_20_1142842_day_cumul_perf.png",
+    dpi = 300
+)
 
 all_1142842_day_cumul_perf <- ggplot(
     daily_downloads_df %>%
@@ -1390,7 +1415,11 @@ all_1142842_day_cumul_perf <- ggplot(
     ) +
     theme_stigler()
 all_1142842_day_cumul_perf
-
+ggsave(
+    plot = all_1142842_day_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/all_1142842_day_cumul_perf.png",
+    dpi = 300
+)
 
 
 
