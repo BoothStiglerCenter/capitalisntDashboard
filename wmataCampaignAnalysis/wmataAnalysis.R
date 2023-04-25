@@ -947,52 +947,67 @@ dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
         multiple = "all"
     )  %>%
     mutate(
-        aired_wmata_general_ad = ifelse(
-            interval(release_date, date) %>% int_overlaps(
-                wmata_general_interval
-            ),
+        in_wmata_general_ad = ifelse(
+            date %within% wmata_general_interval,
             1, 0
         ),
-        aired_wmata_digital_ad = ifelse(
-            interval(release_date, date) %>% int_overlaps(
-                wmata_digital_interval
-            ),
+        in_wmata_digital_ad = ifelse(
+            date %within% wmata_digital_interval,
             1, 0
         ),
-        aired_wamta_static_ad = ifelse(
-            interval(release_date, date) %>% int_overlaps(
-                wmata_static_interval
-            ),
+        in_wmata_static_ad = ifelse(
+            date %within% wmata_static_interval,
             1, 0
         )
     ) %>%
     view()
 
+dmv_msa_episode_level_did_results_df <- data.frame()
 
+for (episode in dmv_msa_did_df$episode_id %>% unique()) {
 
-
-
-
-# Generate the episode IDs once because otherwise, for 4million+
-# observations, the function gets called every time and it gets SLOW
-# Even as it is, the mutate takes quite a bit of time
-wmata_treated_episode_ids <- released_between_episode_ids(
-    "2022-07-07",
-    "2023-01-16",
-    release_dates_df
-)
-dmv_wmata_did_df <- episode_locations_downloads_df %>%
-    filter(
-        episode_id %in% wmata_treated_episode_ids,
-        !is.na(log_days_since_release),
-        log_days_since_release != -Inf
-    ) %>%
-    mutate(
-        in_wmata_general_ad = ifelse(
-            date %within% wmata_general_interval,
-            1, 0
+    msa_did_df <- dmv_msa_did_df %>%
+        filter(
+            episode_id == episode
         )
+
+    title <- msa_did_df %>%
+        select(title) %>%
+        unique() %>%
+        pull()
+
+    dmv_msa_episode_did_model <- lm(
+        cumulative_downloads ~ log_days_since_release +
+            relevant_msa +
+            in_wmata_general_ad +
+            log_days_since_release:relevant_msa:in_wmata_general_ad,
+            data = msa_did_df
     )
+
+    dmv_msa_episode_did_RSE <- coeftest(
+        dmv_msa_episode_did_model,
+        vcov. = vcovHC(dmv_msa_episode_did_model, type = "HC2")
+    ) %>%
+    tidy() %>%
+    mutate(
+        episode_id = episode,
+        title = title
+    )
+
+    dmv_msa_episode_level_did_results_df <- dmv_msa_episode_level_did_results_df %>%
+        rbind(dmv_msa_episode_did_RSE)
+}
+
+dmv_msa_episode_level_did_results_df <- dmv_msa_episode_level_did_results_df %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    ) %>%
+    view()
+
+
+
 
 
 lm(
@@ -1458,3 +1473,30 @@ for (episode in dmv_msa_did_df$episode_id %>% unique()) {
 
 
 #### END ####
+
+
+
+#### SCRATCH ####
+
+
+mydata <- read.dta("http://dss.princeton.edu/training/Panel101.dta") %>%
+    mutate(
+        time = ifelse(year >= 1994, 1, 0),
+        treat = ifelse(
+            country %in% c(
+                "E", "F", "G"),
+                1, 0 ),
+        did = time * treat
+    ) %>%
+    view()
+
+
+did_model <- lm(
+    y ~ treat + time + did,
+    data = mydata
+)
+
+coeftest(
+    did_model,
+    vcov. = vcovHC(did_model, type = "HC2")
+)

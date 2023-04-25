@@ -54,71 +54,106 @@
 \newpage
 \pagenumbering{arabic}
 
-\section{Introduction}
+\section{About \textit{Capitalisn't} and this investigation}
+\textit{Capitalisn't} is a podcast hosted by Luigi Zingales sand Bethany McLean about ``the ways capitalism is -- or more often isn't -- working in our world today ... and what we can do to fix it . '' Released on a bi-weekly schedule, the podcast's reach has steadily grown since its inception in December 2017.\\
 
-\begin{table}[!htbp] \centering 
-    \caption{} 
-    \label{} 
-  \begin{tabular}{@{\extracolsep{5pt}}lcccccccc} 
-  \\[-1.8ex]\hline \\[-1.8ex]
-  Statistic & \multicolumn{1}{c}{Min} & \multicolumn{1}{c}{Pctl(25)} & \multicolumn{1}{c}{St. Dev.} & \multicolumn{1}{c}{Mean} & \multicolumn{1}{c}{Median} & \multicolumn{1}{c}{Pctl(75)} & \multicolumn{1}{c}{Max} & \multicolumn{1}{c}{N} \\
-  \hline 
-  \hline \\[-1.8ex]
-  \textsc{A: Full sample} & & & & & & & & \\
-  Days since release & 6 & 503 & 573.0 & 981.5 & 993 & 1,469 & 1,942 & 151 \\
-  Downloads $t=14$ & 407 & 4,925 & 3,713.0 & 8,339.5 & 7,623 & 11,709 & 19,581 & 149 \\ 
-  Downloads $t=28$ & 1,847 & 5,485 & 4,125.4 & 9,415.3 & 8,661 & 13,456.2 & 18,797 & 148 \\
-  \hline \\[-1.8ex]
-  \textsc{B: Recent 20} & & & & & & & & \\
-  Days since release & 6 & 53.2 & 72.8 & 112.0 & 104 & 170.5 & 237 & 20 \\
-  Downloads $t=14$ & 11,928 & 12,319.5 & 1,879.7 & 13,804.3 & 13,576 & 14,301.5 & 19,581 & 18 \\ 
-  Downloads $t=28$ & 13,303 & 14,000 & 1,479.4 & 15,349.9 & 15,096 & 16,247 & 18,797 & 17 \\
-  \hline
-  \hline \\[-1.8ex] 
-  \end{tabular}
-\end{table}
+In order to expand the show's reach, in 2021 the Stigler Center (the sponsoring organization of the podcast) previously engaged in two advertising campaign with The Economist Media Group and Vox Media group to raise the awareness of the show. Previous evaluations of those campaigns, however, were limited by the construction of the advertising campaigns and the limited availability of high-resolution data.\\
 
+Since then, in an effort to more rigorously evaluate the potential effects of advertising on audience size, the Stigler Center has run a more narrowly defined ad campaign with the Washington Metropolitan Area Transit Authority (WMATA). The design of this was varied in space and in time so as to generate plausible exogeneity in ``treatment'' (exposure to advertising). Moreover, with advance notice the resolution of data collection is considerably higher than was previously available. In this investigation, we employ, ordinary least squares (OLS), regression-discontinuity, and difference-in-differences (DiD) estimation methodologies in an effor to assess the effectiveness of the WMATA ad campaign.
+
+\subsection{Advertising campaigns}
+In the course of advertising the podcast, the Stigler Center purchased two kinds of advertisements that were displayed in WMATA stations throughout the greater Washington, D.C.-Maryland-Virginia (DMV) metropolitan area and in train cars on the WMATA system. ``Digital'' advertisements were present on digital-signage in stations and ``static'' advertisements were posted in train cars. The digital ads were posted between January 19th, and February 15th, 2023. The static ads were posted between January 16th and February 12th 2023. For purposes of parsimony, we generally refer to the WMATA ad as begin in effect between January 16th and February 15th, 2023, the outer bounds of the two advertisement periods.\footnote{First-hand accounts reveal that many of the static ads were still posted in train cars well after the paid-for campaign period ended. This was the case as late as the end of March, suggesting that estimation methods may be biased due to inaccurate definition of the treatment period. This is addressed at greater length in subsequent sections.} For these two postings, the Stigler Center paid \$40,000.
+
+\subsection{Data summary}
+This investigation primarily focusses on the effect of advertising on \textit{downloads} for \textit{Capitalisn't}.\footnote{Because movile internet connectivity has improved considerably since the inception of podcasts, streaming podcasts through third-party services such as YouTube has become an increasingly popular alternative to downloading episodes. We restrict our attention to data made available through the podcast's first-party distribution service, Simplecast, which aggregates streams and downloads across a number of third-party podcast aggregation services. This is not, however, an exhaustive measure of the podcasts's audience.} Simplecast, the first-party distribution service that the Stigler Center uses, provides API endpoints that allow us to query for downloads data at varying degrees of temporal- and entity-resolution. Much of this investigation focusses on episode-daily-level downloads data.\\
+
+Additionally, because of the podcast's bi-weekly release schedule downloads 14- and 28-days following release are of interest. Table \ref{episode-level-summary-stats} presents some cursory summary statistics about cumulative downloads to in these intervals. Two aggregate phenomena are worth explicating. First, note that almost every statistic is lower is lower in the full sample (Panel A) than in the most-recent-20 sample (Panel B) of episodes. This represents a secular growth in the podcast over time whereby the early performance of old podcast episodes (when the podcast was small and hand not yet developed a loyal audience) is considerably poorer than that of recent episodes (which receive many more ``first-day downloads''\footnote{``First-day downloads'' here refers to downloads made while the } due to a steady cohort of regular listeners who have ``subscribed' to the podcast'). This phenomenon is underscored by the performance of the most recent episode. Note that the maximum value of the ``Downloads $t=14$'' statistic is greater than the maximum value of the ``Downloads $t=28$'' statistic. That is, the most recent has already received more downloads in 14 days than the next-best-performing episode did in 28 days (and this episode has not yet been released for 28 days).\\
+
+\input{tables/episode-level-summary-stats.tex}
+
+There are over 150 episodes in the \textit{Capitalisn't} catalog. However, because of the secular growth phenomenon identified above and because of the (im)plausible effect of treatment on episodes ``deep'' in the back-catalog of episodes, much of the analysis is restricted to more recently released episodes --- often to the 50 most recently released episodes, or episodes released since the change of hosts in 2020, for example.
 
 \section{Motivating Figures}
 
-\section{DMV Diff-in-Diff}
+\section{Policy Evaluation}
+\subsection{Naive Episode Level OLS}
+
+\begin{landscape}
+    \thispagestyle{empty}
+    \begin{table}[!htbp] \centering
+        \caption{}
+        \label{}
+      \begin{tabular}{@{\extracolsep{5pt}}lcccccccc} 
+      \\[-1.8ex]\hline
+      \hline \\[-1.8ex]
+       & \multicolumn{8}{c}{\textit{Dependent variable:}} \\
+      \cline{2-9} 
+      \\[-1.8ex] & \multicolumn{3}{c}{Downloads ($t=14$)} & \multicolumn{5}{c}{Downloads ($t=28$)} \\       
+      \\[-1.8ex] & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8)\\ 
+      \hline \\[-1.8ex]
+       Trailing Avg. ($n=5, t=14$) & 0.989$^{***}$ & 0.992$^{***}$ & 0.995$^{***}$ &  &  &  &  & 2.706$^{***}$ \\
+        & (0.023) & (0.023) & (0.023) &  &  &  &  & (0.837) \\
+        Trailing Avg. ($n=5, t=28$) &  &  &  & 0.992$^{***}$ & 0.990$^{***}$ & 0.991$^{***}$ & 0.992$^{***}$ & $-$1.361$^{*}$ \\
+        &  &  &  & (0.021) & (0.022) & (0.022) & (0.021) & (0.722) \\ 
+        WMATA Ad. &  & $-$290.419 & $-$319.412 &  & 332.015$^{*}$ & 319.679$^{*}$ &  &  \\
+        &  & (864.114) & (865.346) &  & (188.934) & (190.788) &  &  \\
+        Economist/Vox Ad. &  &  & $-$445.718 &  &  & $-$317.228 &  &  \\ 
+        &  &  & (505.206) &  &  & (978.033) &  &  \\
+        Constant & $-$82.344 & $-$102.220 & $-$103.856 & $-$91.374 & $-$77.835 & $-$79.192 & $-$91.374 & $-$326.518 \\
+        & (189.422) & (191.364) & (191.547) & (191.724) & (196.476) & (196.718) & (191.724) & (230.056) \\  
+       \hline \\[-1.8ex]
+      Observations & 145 & 145 & 145 & 144 & 144 & 144 & 144 & 144 \\ 
+      R$^{2}$ & 0.942 & 0.942 & 0.943 & 0.944 & 0.944 & 0.944 & 0.944 & 0.949 \\
+      Adjusted R$^{2}$ & 0.941 & 0.941 & 0.941 & 0.943 & 0.943 & 0.943 & 0.943 & 0.948 \\ 
+      \hline
+      \hline \\[-1.8ex]
+      \textit{Note:}  & \multicolumn{8}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\
+      \end{tabular}
+      \end{table}
+\end{landscape}    
+
+
+
+
+
+
+\subsection{DMV Diff-in-Diff}
+
 
 \begin{table}[!htbp] \centering 
-    \caption{} 
-    \label{}   
-  \begin{tabular}{@{\extracolsep{5pt}}lccc}
-  \\[-1.8ex]\hline
-  \hline \\[-1.8ex]
-   & \multicolumn{3}{c}{\textit{Dependent variable:}} \\
-  \cline{2-4}
-  \\[-1.8ex] & \multicolumn{3}{c}{downloads\_t\_14} \\
-  \\[-1.8ex] & (1) & (2) & (3)\\ 
-  \hline \\[-1.8ex]
-   trailing5\_t\_14\_avg & 0.989$^{***}$ & 0.992$^{***}$ & 0.995$^{***}$ \\
-    & (0.021) & (0.021) & (0.021) \\ 
-    & & & \\
-   aired\_wmata\_digital\_ad &  & $-$290.419 & $-$319.412 \\
-    &  & (515.920) & (515.987) \\
-    & & & \\ 
-   aired\_first\_ad\_experiment &  &  & $-$445.718 \\
-    &  &  & (389.883) \\
-    & & & \\
-   Constant & $-$82.344 & $-$102.220 & $-$103.856 \\
-    & (184.812) & (188.590) & (188.392) \\ 
-    & & & \\
-  \hline \\[-1.8ex]
-  Observations & 145 & 145 & 145 \\
-  R$^{2}$ & 0.942 & 0.942 & 0.943 \\
-  Adjusted R$^{2}$ & 0.941 & 0.941 & 0.941 \\
-  Residual Std. Error & 851.975 (df = 143) & 854.018 (df = 142) & 853.096 (df = 141) \\ 
-  F Statistic & 2,316.717$^{***}$ (df = 1; 143) & 1,152.984$^{***}$ (df = 2; 142) & 770.753$^{***}$ (df 
-  = 3; 141) \\
-  \hline
-  \hline \\[-1.8ex]
-  \textit{Note:}  & \multicolumn{3}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\
-  \end{tabular}
-  \end{table}
-
+  \caption{}
+  \label{}
+\begin{tabular}{@{\extracolsep{5pt}}lcc}
+\\[-1.8ex]\hline
+\hline \\[-1.8ex]
+ & \multicolumn{2}{c}{\textit{Dependent variable:}} \\
+\cline{2-3} 
+\\[-1.8ex] & \multicolumn{2}{c}{cumulative\_downloads} \\
+\\[-1.8ex] & (1) & (2)\\
+\hline \\[-1.8ex]
+ log\_days\_since\_release & 2,718.561 & 2,718.561$^{***}$ \\ 
+  &  & (257.808) \\
+  & & \\
+ in\_wmata\_general\_ad &  &  \\
+  &  &  \\
+  & & \\
+ log\_days\_since\_release:in\_wmata\_general\_ad &  &  \\
+  &  &  \\
+  & & \\
+ Constant & 8,144.782 & 8,144.782$^{***}$ \\ 
+  &  & (228.348) \\
+  & & \\
+\hline \\[-1.8ex]
+Observations & 5 & 5 \\
+R$^{2}$ & 0.982 & 0.982 \\
+Adjusted R$^{2}$ & 0.976 & 0.976 \\
+Residual Std. Error (df = 3) & 267.810 & 267.810 \\
+F Statistic (df = 1; 3) & 166.468$^{***}$ & 166.468$^{***}$ \\ 
+\hline
+\hline \\[-1.8ex]
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\
+\end{tabular}
+\end{table}
 
 
 \end{document}
