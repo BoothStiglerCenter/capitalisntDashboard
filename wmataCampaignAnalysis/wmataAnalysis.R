@@ -126,10 +126,8 @@ release_dates_df <- episodes_core_data_in %>%
         release_date = min(interval)
     )
 
-
 is_a_release_date_df <- release_dates_df %>%
     mutate(is_a_release_date = 1)
-
 
 campaign_dates_df <- episodes_core_data_in %>%
     select(interval) %>%
@@ -249,7 +247,10 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
         )
     )
 
-
+# Converting the massive daily episode-locations and the
+# considerably smaller cities_id tibbles (from tidyverse)
+# to data.table format so that they can be joined together
+# and manipulated much faster. Smae goes for release_dates df
 episode_locations_data_dt <- data.table(
     episode_locations_data_in %>%
         filter(
@@ -275,7 +276,13 @@ release_dates_dt <- data.table(
     key = "episode_id"
 )
 
-
+# Merging the relevant_msa column from the dmv_cities_dt
+# onto the wide episode-locations dt so that things can
+# later be filtered based on the `relevant_msa` variable.
+# Also mergingin the release_dates dt so that we can filter
+# out episodes that are released prior to the period of
+# interest (so that we can do this while the format is)
+# still wide rather than long.
 episode_locations_downloads_dt <- episode_locations_data_dt %>%
     merge(
         dmv_cities_dt,
@@ -287,22 +294,68 @@ episode_locations_downloads_dt <- episode_locations_data_dt %>%
         by = "episode_id", all = TRUE
     )
 
+# If an episode-place observation (row) did not match to anything in the
+# dmv_cities_dt, the value in the 'relevant_msa' column is coerced
+# to NA. We change that back to 0.
 episode_locations_downloads_dt[, "relevant_msa"][is.na(episode_locations_downloads_dt[, "relevant_msa"])] <- 0
-print(nrow(episode_locations_downloads_dt))
 
-
+# Dropping faulty observations (potential errors introduced by bad/time
+# API calls) /RAM overflow.
 episode_locations_downloads_dt <- episode_locations_downloads_dt[!is.na(episode_id),]
-print(nrow(episode_locations_downloads_dt))
 episode_locations_downloads_dt <- episode_locations_downloads_dt[!is.na(city_id),]
-print(nrow(episode_locations_downloads_dt))
+
+# Generating a new data.table that keeps only observations that are
+# in a relevant_msa == 1 (ie in the DMV) or are in New York state
+# which we will use as the untreated unit for another specification
+# of the DiD.
+episode_locations_dmv_ny_dt <- episode_locations_downloads_dt %>%
+    .[(state_id == 5128638) | (relevant_msa == 1), ]
+
 
 episode_locations_downloads_dt <- episode_locations_downloads_dt[,
     lapply(.SD, sum, na.rm = TRUE),
     by = c("episode_id", "relevant_msa"),
-    .SDcols = 5:232
-] 
+    .SDcols = 5:237
+]
 
+episode_locations_dmv_ny_dt <- episode_locations_dmv_ny_dt[,
+    lapply(.SD, sum, na.rm = TRUE),
+    by = c("episode_id", "relevant_msa"),
+    .SDcols = 5:237
+]
+
+
+# Reshaping subset of relevant episode-level observations to be long
 episode_locations_msa_downloads_df <- episode_locations_downloads_dt %>%
+    as_tibble() %>%
+    pivot_longer(
+        cols = -c("episode_id", "relevant_msa"),
+        names_to = "date",
+        values_to = "cumulative_downloads"
+    ) %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    ) %>%
+    mutate(
+        date = ymd(date),
+        days_since_release = as.numeric(
+            as.period(
+                interval(release_date, date),
+                unit = "days"
+            )
+        ) / as.numeric(days(1)),
+    ) %>%
+    filter(
+        days_since_release > 0
+    ) %>%
+    mutate(
+        log_days_since_release = log(days_since_release)
+    )
+
+episode_locations_dmv_ny_downloads_df <- episode_locations_dmv_ny_dt %>%
+    as_tibble() %>%
     pivot_longer(
         cols = -c("episode_id", "relevant_msa"),
         names_to = "date",
@@ -1050,17 +1103,6 @@ dmv_msa_episode_level_did_results_df <- dmv_msa_episode_level_did_results_df %>%
     ) %>%
     view()
 
-# ggplot(dmv_msa_did_df) +
-#     geom_point(
-#         aes(
-#             x = log_days_since_release,
-#             y = cumulative_downloads,
-#             color = as.factor(relevant_msa)
-#         )
-#     ) +
-#     theme_minimal()
-
-
 fe_log_time_to_treat_did <- feols(
     cumulative_downloads ~ log_days_since_release +
         log_days_to_ad_start +
@@ -1181,7 +1223,7 @@ stargazer(
 
 ### PLOTS ###
 
-##### REFERENCE GGPLOT ELEMENTS ##### 
+##### REFERENCE GGPLOT ELEMENTS #####
 ad_period_shade_geom <- geom_rect(
     aes(
         xmin = ymd("2023-01-16"),
@@ -1212,6 +1254,7 @@ ad_period_line_end_geom <- geom_segment(
 )
 
 ##### MOVING AVERAGE DECOMPOSITION GGPLOTS ####
+
 recent_podcast_moving_avg_decomp <- ggplot(
     podcast_daily_downloads_df %>%
     pivot_longer(
@@ -1599,7 +1642,6 @@ ggplot(
 
 #### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
 
-
 for (episode in dmv_msa_did_df$episode_id %>% unique()) {
 
     title <- dmv_msa_did_df %>%
@@ -1651,13 +1693,12 @@ ggplot(dmv_msa_did_df) +
         ) +
         scale_color_stigler(
             palette = "reds_2",
-        ) + 
+        ) +
         labs(
             title = title
         ) +
         theme_minimal() +
         facet_wrap(~episode_id)
-
 
 #### END ####
 
