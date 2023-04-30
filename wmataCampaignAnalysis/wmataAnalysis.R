@@ -34,7 +34,6 @@ vox_interval <- interval(
 )
 
 
-
 #### READING DATA IN ####
 dmv_data_in <- read_csv(
     "wmataCampaignAnalysis/states_cities_DMV.csv"
@@ -126,6 +125,11 @@ release_dates_df <- episodes_core_data_in %>%
     summarise(
         release_date = min(interval)
     )
+
+
+is_a_release_date_df <- release_dates_df %>%
+    mutate(is_a_release_date = 1)
+
 
 campaign_dates_df <- episodes_core_data_in %>%
     select(interval) %>%
@@ -958,6 +962,46 @@ dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
         in_wmata_static_ad = ifelse(
             date %within% wmata_static_interval,
             1, 0
+        ),
+        abs_days_to_ad_start = (as.numeric(days(1)) + abs(
+                as.numeric(
+                    as.period(
+                        interval(date, ymd("2023-01-16")),
+                        unit = "days"
+                    )
+                )
+            )) / as.numeric(days(1)),
+        log_days_to_ad_start = case_when(
+            date < ymd("2023-01-16") ~ -log(abs_days_to_ad_start),
+            date > ymd("2023-01-16") ~ log(abs_days_to_ad_start),
+            date == ymd("2023-01-16") ~ 0
+        ),
+        rel_days_to_ad_start = case_when(
+            date < ymd("2023-01-16") ~ -abs_days_to_ad_start,
+            date > ymd("2023-01-16") ~ abs_days_to_ad_start,
+            date == ymd("2023-01-16") ~ 0
+        )
+    ) %>%
+    group_by(episode_id, relevant_msa) %>%
+    arrange(date) %>%
+    mutate(
+        daily_downloads = cumulative_downloads - lag(
+            cumulative_downloads,
+            n = 1
+        ),
+        temp_date = as.numeric(date)
+    ) %>%
+    left_join(
+        is_a_release_date_df %>%
+            mutate(temp_date = as.numeric(release_date)) %>%
+            select(-c("episode_id", "release_date")),
+        by = "temp_date",
+        multiple = "all"
+    ) %>%
+    mutate(
+        is_a_release_date = ifelse(
+            is.na(is_a_release_date),
+            0, is_a_release_date
         )
     ) %>%
     view()
@@ -1006,15 +1050,100 @@ dmv_msa_episode_level_did_results_df <- dmv_msa_episode_level_did_results_df %>%
     ) %>%
     view()
 
+# ggplot(dmv_msa_did_df) +
+#     geom_point(
+#         aes(
+#             x = log_days_since_release,
+#             y = cumulative_downloads,
+#             color = as.factor(relevant_msa)
+#         )
+#     ) +
+#     theme_minimal()
+
+
+fe_log_time_to_treat_did <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        log_days_to_ad_start +
+        relevant_msa +
+        i(log_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_msa_did_df
+)
+
+fe_log_time_to_treat_did_release_control <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        log_days_to_ad_start +
+        relevant_msa +
+        is_a_release_date +
+        i(log_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_msa_did_df
+)
+
+
+iplot(
+    fe_log_time_to_treat_did,
+    # fe_log_time_to_treat_did_release_control,
+    xlab = "Relative Logged Days to Advertisement Start",
+    main = "Cumulative Downloads DID Event Study (TWFE)"
+)
+
+
+
+fe_time_to_treat_did <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        rel_days_to_ad_start +
+        relevant_msa +
+        i(rel_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_msa_did_df
+)
+
+
+
+fe_time_to_treat_did_release_control <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        rel_days_to_ad_start +
+        relevant_msa +
+        is_a_release_date +
+        i(rel_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_msa_did_df
+)
+
+iplot(
+    fe_time_to_treat_did,
+    xlab = "Days to Advertisement Start",
+    main = 'Cumulative Downloads DIDEvent Study (TWFE)'
+)
+
+
+
+fe_time_to_treat_daily_downloads <- feols(
+    daily_downloads ~ log_days_since_release +
+        rel_days_to_ad_start +
+        relevant_msa +
+        i(rel_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_msa_did_df
+)
+
+
+iplot(
+    fe_time_to_treat_daily_downloads,
+    xlab = "Days to Advertisement Start",
+    main = "Daily Downloads DID Event Study (TWFE)"
+)
 
 
 
 
-lm(
-    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + relevant_msa+ in_wmata_general_ad:relevant_msa,
-    data = dmv_wmata_did_df
-) %>%
-summary()
+
 
 ##### REGRESSION TABLES #####
 ###### NAIVE OLS MODELS ######
@@ -1473,7 +1602,7 @@ ggplot(
 
 for (episode in dmv_msa_did_df$episode_id %>% unique()) {
 
-    title <- dmv_msa_did_df %>% 
+    title <- dmv_msa_did_df %>%
         filter(episode_id == episode) %>%
         select(title) %>%
         distinct() %>%
@@ -1486,19 +1615,48 @@ for (episode in dmv_msa_did_df$episode_id %>% unique()) {
             aes(
                 x = log_days_since_release,
                 y = cumulative_downloads,
-                color = relevant_msa,
+                color = as.factor(relevant_msa),
+                fill = as.factor(in_wmata_general_ad),
                 group = relevant_msa
-            )
+            ),
+            shape = 21
+        ) +
+        scale_fill_stigler(
+            palette = "blues_2",
+        ) +
+        scale_color_stigler(
+            palette = "reds_2",
         ) +
         labs(
             title = title
         ) +
         theme_stigler()
 
-    plot
+    plot %>% print()
 
 }
 
+ggplot(dmv_msa_did_df) +
+        geom_point(
+            aes(
+                x = log_days_since_release,
+                y = cumulative_downloads,
+                color = as.factor(relevant_msa),
+                fill = as.factor(in_wmata_general_ad),
+                group = relevant_msa
+            )
+        ) +
+        scale_fill_stigler(
+            palette = "blues_2",
+        ) +
+        scale_color_stigler(
+            palette = "reds_2",
+        ) + 
+        labs(
+            title = title
+        ) +
+        theme_minimal() +
+        facet_wrap(~episode_id)
 
 
 #### END ####
