@@ -1230,6 +1230,85 @@ dmv_nys_episode_level_did_results_df <- dmv_nys_episode_level_did_results_df %>%
         multiple = "all"
     )
 
+for (episode in released_between_episode_ids(
+    cutoff_period_start_str = "2022-08-17",
+    cutoff_period_end_str = "2022-12-31",
+    release_dates_df
+)) {
+    df <- dmv_nys_did_df %>%
+        filter(episode_id == episode)
+
+    title <- df %>%
+        select(title) %>%
+        unique() %>%
+        pull()
+
+    ad_start_date_in_log_days_since_release <- df %>%
+        filter(
+            in_wmata_general_ad == 1
+        ) %>%
+        arrange(log_days_since_release) %>%
+        head(1) %>%
+        select(log_days_since_release) %>%
+        pull()
+
+    plot <- ggplot(df) +
+        geom_point(
+            aes(
+                x = log_days_since_release,
+                y = cumulative_downloads,
+                color = as.factor(in_wmata_general_ad),
+                shape = as.factor(relevant_msa)
+            ),
+            size = 2
+        ) +
+        geom_segment(
+            aes(
+                x = ad_start_date_in_log_days_since_release,
+                xend = ad_start_date_in_log_days_since_release,
+                y = 0,
+                yend = Inf,
+            ),
+            color = "black",
+            linewidth = 0.75
+        ) +
+        scale_color_stigler(
+            palette = "red_to_blue",
+            guide = "none"
+        ) +
+        scale_shape_discrete(
+            name = "Location",
+            labels = c("NYS", "DMV")
+        ) +
+        scale_x_continuous(
+            name = "Log days since release"
+        ) +
+        labs(
+            title = title,
+            subttitle = "DMV vs New York States DiD, Cumulative downloads"
+        ) +
+        theme_stigler()
+
+    filename_save <- paste0(
+        "wmataCampaignAnalysis/figures/nys_dmv_DiD/",
+        "nys_dmv-",
+        title %>%
+            str_replace_all(
+                "[[:punct:]]",
+                ""
+            ),
+        "diff-in-diff",
+        ".jpg",
+        sep = ""
+    )
+    ggsave(
+        plot = plot,
+        filename = filename_save,
+        dpi = 300
+    )
+}
+
+
 fe_log_time_to_treat_dmv_nys <- feols(
     cumulative_downloads ~ log_days_since_release +
         log_days_to_ad_start +
@@ -1728,25 +1807,36 @@ ggplot(
             )
         ) %>%
         mutate(
-            stars = as.factor(
-                case_when(
-                    p.value < 0.01 ~ "***",
-                    (p.value >= 0.01) & (p.value < 0.05) ~ "**",
-                    (p.value >= 0.05) & (p.value < 0.10) ~ "*",
-                    TRUE ~ ""
-                )
-            )
-        ) %>%
-        select(-"release_date.y") %>%
-        rename("release_date" = "release_date.x") %>%
-        arrange(release_date)
+            sig_level = case_when(
+                p.value < 0.01 ~ "&#42;&#42;&#42;", #*** 
+                (p.value >= 0.01) & (p.value < 0.05) ~ "&#42;&#42;", # **
+                (p.value >= 0.05) & (p.value < 0.10) ~ "&#42;", # *
+                TRUE ~ ""
+            ),
+            stars = as.ordered(
+                sig_level
+            ),
+            term = case_when(
+                term == "(Intercept)" ~ "Intercept",
+                term == "log_days_since_release" ~ "Log(Days since release)",
+                term == "in_wmata_general_ad" ~ "Ad period",
+                term == "relevant_msa" ~ "DMV",
+                term == "log_days_since_release:relevant_msa:in_wmata_general_ad" ~ "Interaction"
+            ),
+            coef_positive = as.factor(ifelse(
+                estimate > 0,
+                1, 0
+            ))
+        )
 ) +
     geom_tile(
         aes(
             x = as.factor(release_date),
             y = term,
-            fill = stars
-        )
+            fill = sig_level,
+            color = coef_positive
+        ),
+        linewidth = 0.5
     ) +
     geom_segment(
         aes(
@@ -1758,11 +1848,112 @@ ggplot(
         linewidth = 1,
         color = "black"
     ) +
+    scale_color_manual(
+        breaks = c(0, 1),
+        values = c("#ffffff", "#000000"),
+        labels = c("Neg", "Pos"),
+        name = "Coefficient sign",
+    ) +
     scale_fill_stigler(
         palette = "reds",
         discrete = TRUE
     ) +
-    theme_minimal()
+    coord_flip() +
+    labs(
+        title = "Coefficient Statistical Significance Heatmap",
+        subtitle = "DMV vs NY State DiD estimates at the episode-level"
+    ) +
+    theme_stigler()
+
+ggsave(
+    plot = last_plot(),
+    filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/episode_level_sig_heatmap.jpg",
+    dpi = 300
+)
+
+ggplot(
+    fe_log_time_to_treat_dmv_nys %>%
+        tidy() %>%
+        filter(
+            str_starts(
+                term,
+                "log_days_to_ad_start",
+            )
+        ) %>%
+        mutate(
+            log_days_to_ad_start = as.numeric(str_match(
+                term,
+                "::(.*?):"
+            )[, 2])
+        ) %>%
+        rename(
+            "point_estimate" = "estimate",
+        ) %>%
+        mutate(
+            ci95_min = point_estimate - (1.96 * std.error),
+            ci95_max = point_estimate + (1.96 * std.error),
+        )
+) +
+    geom_hline(
+        yintercept = 0,
+        linewidth = 0.75,
+        color = "black"
+    ) +
+    geom_vline(
+        xintercept = 0,
+        linwidth = 0,
+        color = "black"
+    ) +
+    geom_text(
+        aes(
+            x = 0,
+            y = 40,
+            label = "WMATA Ad begins",
+        ),
+        family = "Trade Gothic Std LT",
+        fontface = "italic",
+        nudge_x = 0.2,
+        hjust = 0
+    ) + 
+    geom_ribbon(
+        aes(
+            x = log_days_to_ad_start,
+            ymin = ci95_min,
+            ymax = ci95_max
+        ),
+        alpha = 0.25,
+        color = "grey"
+    ) +
+    geom_line(
+        aes(
+            x = log_days_to_ad_start,
+            y = point_estimate
+        ),
+        color = "black",
+        linewidth = 0.2
+    ) +
+    geom_point(
+        aes(
+            x = log_days_to_ad_start,
+            y = point_estimate
+        )
+    ) +
+    scale_x_continuous(
+        name = "Relative log(days to treatment)"
+    ) +
+    labs(
+        title = "DMV vs NY State Diff-in-Diff (TWFE) Interaction Term Coefficients",
+        subtitle = "Point estimates and 95% confidence interval",
+        caption = "Estimates account for episode- and day-fixed effects. Errors are clustered at the episode level."
+    ) +
+    theme_stigler()
+
+ggsave(
+    plot = last_plot(),
+    filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/interaction_term_event_study_plot.jpg",
+    dpi = 300
+)
+
 
 #### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
 
