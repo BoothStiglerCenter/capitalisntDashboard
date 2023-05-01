@@ -996,7 +996,7 @@ ggplot(daily_slope_kink_df %>%
     theme_minimal()
 
 ##### DMV/WMATA DIFF-IN-DIFF #####
-
+######## DMV vs WHOLE OF COUNTRY DIFF-IN-DFF ########
 dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
     left_join(
         titles_ids_df,
@@ -1056,8 +1056,7 @@ dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
             is.na(is_a_release_date),
             0, is_a_release_date
         )
-    ) %>%
-    view()
+    )
 
 dmv_msa_episode_level_did_results_df <- data.frame()
 
@@ -1069,6 +1068,7 @@ for (episode in dmv_msa_did_df$episode_id %>% unique()) {
         )
 
     title <- msa_did_df %>%
+        ungroup() %>%
         select(title) %>%
         unique() %>%
         pull()
@@ -1124,15 +1124,12 @@ fe_log_time_to_treat_did_release_control <- feols(
     data = dmv_msa_did_df
 )
 
-
 iplot(
     fe_log_time_to_treat_did,
     # fe_log_time_to_treat_did_release_control,
     xlab = "Relative Logged Days to Advertisement Start",
     main = "Cumulative Downloads DID Event Study (TWFE)"
 )
-
-
 
 fe_time_to_treat_did <- feols(
     cumulative_downloads ~ log_days_since_release +
@@ -1143,8 +1140,6 @@ fe_time_to_treat_did <- feols(
     cluster = ~episode_id,
     data = dmv_msa_did_df
 )
-
-
 
 fe_time_to_treat_did_release_control <- feols(
     cumulative_downloads ~ log_days_since_release +
@@ -1163,8 +1158,6 @@ iplot(
     main = 'Cumulative Downloads DIDEvent Study (TWFE)'
 )
 
-
-
 fe_time_to_treat_daily_downloads <- feols(
     daily_downloads ~ log_days_since_release +
         rel_days_to_ad_start +
@@ -1175,16 +1168,118 @@ fe_time_to_treat_daily_downloads <- feols(
     data = dmv_msa_did_df
 )
 
-
 iplot(
     fe_time_to_treat_daily_downloads,
     xlab = "Days to Advertisement Start",
     main = "Daily Downloads DID Event Study (TWFE)"
 )
 
+######## DMV vs NYS OF COUNTRY DIFF-IN-DFF ########
+dmv_nys_did_df <- episode_locations_dmv_ny_downloads_df %>%
+    left_join(
+        titles_ids_df,
+        by = "episode_id",
+        multiple = "all"
+    )  %>%
+    mutate(
+        in_wmata_general_ad = ifelse(
+            date %within% wmata_general_interval,
+            1, 0
+        ),
+        in_wmata_digital_ad = ifelse(
+            date %within% wmata_digital_interval,
+            1, 0
+        ),
+        in_wmata_static_ad = ifelse(
+            date %within% wmata_static_interval,
+            1, 0
+        ),
+        abs_days_to_ad_start = (as.numeric(days(1)) + abs(
+                as.numeric(
+                    as.period(
+                        interval(date, ymd("2023-01-16")),
+                        unit = "days"
+                    )
+                )
+            )) / as.numeric(days(1)),
+        log_days_to_ad_start = case_when(
+            date < ymd("2023-01-16") ~ -log(abs_days_to_ad_start),
+            date > ymd("2023-01-16") ~ log(abs_days_to_ad_start),
+            date == ymd("2023-01-16") ~ 0
+        ),
+        rel_days_to_ad_start = case_when(
+            date < ymd("2023-01-16") ~ -abs_days_to_ad_start,
+            date > ymd("2023-01-16") ~ abs_days_to_ad_start,
+            date == ymd("2023-01-16") ~ 0
+        )
+    ) %>%
+    group_by(episode_id, relevant_msa) %>%
+    arrange(date) %>%
+    mutate(
+        daily_downloads = cumulative_downloads - lag(
+            cumulative_downloads,
+            n = 1
+        ),
+        temp_date = as.numeric(date)
+    ) %>%
+    left_join(
+        is_a_release_date_df %>%
+            mutate(temp_date = as.numeric(release_date)) %>%
+            select(-c("episode_id", "release_date")),
+        by = "temp_date",
+        multiple = "all"
+    ) %>%
+    mutate(
+        is_a_release_date = ifelse(
+            is.na(is_a_release_date),
+            0, is_a_release_date
+        )
+    )
 
+dmv_nys_episode_level_did_results_df <- data.frame()
 
+for (episode in dmv_nys_did_df$episode_id %>% unique()) {
 
+    msa_did_df <- dmv_nys_did_df %>%
+        filter(
+            episode_id == episode
+        )
+
+    title <- msa_did_df %>%
+        ungroup() %>%
+        select(title) %>%
+        unique() %>%
+        pull()
+
+    dmv_nys_episode_did_model <- lm(
+        cumulative_downloads ~ log_days_since_release +
+            relevant_msa +
+            in_wmata_general_ad +
+            log_days_since_release:relevant_msa:in_wmata_general_ad,
+            data = msa_did_df
+    )
+
+    dmv_nys_episode_did_RSE <- coeftest(
+        dmv_nys_episode_did_model,
+        vcov. = vcovHC(dmv_nys_episode_did_model, type = "HC2")
+    ) %>%
+    tidy() %>%
+    mutate(
+        episode_id = episode,
+        title = title
+    )
+
+    dmv_nys_episode_level_did_results_df <- dmv_nys_episode_level_did_results_df %>%
+        rbind(dmv_nys_episode_did_RSE)
+}
+
+dmv_nys_episode_level_did_results_df <- dmv_nys_episode_level_did_results_df %>%
+    left_join(
+        release_dates_df,
+        by = "episode_id",
+        multiple = "all"
+    ) %>%
+    view()
 
 
 ##### REGRESSION TABLES #####
@@ -1596,7 +1691,8 @@ ggsave(
 
 
 
-#### DAILY-KINK SIGNIFICANCE PLOTS #####
+#### SIGNIFICANCE HEATMAP PLOTS #####
+# Daily-kink specifications
 ggplot(
     daily_kink_results_df %>%
         filter(
@@ -1615,6 +1711,52 @@ ggplot(
                 )
             )
         ) %>%
+        arrange(release_date)
+) +
+    geom_tile(
+        aes(
+            x = as.factor(release_date),
+            y = term,
+            fill = stars
+        )
+    ) +
+    geom_segment(
+        aes(
+            x = as.factor(ymd("2023-01-19")),
+            xend = as.factor(ymd("2023-01-19")),
+            y = Inf,
+            yend = 0,
+        ),
+        linewidth = 1,
+        color = "black"
+    ) +
+    scale_fill_stigler(
+        palette = "reds",
+        discrete = TRUE
+    ) +
+    theme_minimal()
+
+# DMV-NYS Diff-in-Diff specifications
+ggplot(
+    dmv_nys_episode_level_did_results_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(
+                n = 50,
+                release_dates_df
+            )
+        ) %>%
+        mutate(
+            stars = as.factor(
+                case_when(
+                    p.value < 0.01 ~ "***",
+                    (p.value >= 0.01) & (p.value < 0.05) ~ "**",
+                    (p.value >= 0.05) & (p.value < 0.10) ~ "*",
+                    TRUE ~ ""
+                )
+            )
+        ) %>%
+        select(-"release_date.y") %>%
+        rename("release_date" = "release_date.x") %>%
         arrange(release_date)
 ) +
     geom_tile(
