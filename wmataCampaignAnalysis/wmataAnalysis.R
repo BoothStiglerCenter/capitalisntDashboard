@@ -841,8 +841,6 @@ for (episode in daily_slope_kink_df$episode_id %>% unique()) {
         filter(
             episode_id == episode
         )
-    # print("#####################################################")
-    # print(episode_title)
 
     daily_model <- lm(
         cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
@@ -864,18 +862,6 @@ for (episode in daily_slope_kink_df$episode_id %>% unique()) {
         title = episode_title
     )
 
-    # coeftest(
-    #     daily_model,
-    #     vcov. = vcovHC(daily_model, type = "HC2")
-    # ) %>%
-    # print()
-    # print("--------------------------------------------------")
-    # coeftest(
-    #     daily_model_no_intercept,
-    #     vcov. = vcovHC(daily_model_no_intercept, type = "HC2")
-    # ) %>%
-    # print()
-
     daily_no_intercept_RSE_results <- coeftest(
         daily_model_no_intercept,
         vcov. = vcovHC(daily_model_no_intercept, type = "HC2")
@@ -885,7 +871,6 @@ for (episode in daily_slope_kink_df$episode_id %>% unique()) {
         episode_id = episode,
         title = episode_title
     )
-
 
     daily_kink_results_df <- daily_kink_results_df %>%
         rbind(daily_RSE_results)
@@ -911,7 +896,7 @@ daily_kink_no_intercept_results_df <- daily_kink_no_intercept_results_df %>%
 
 alltime_daily_slope_kink_advertisement_fe <- feols(
     cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad | episode_id,
-    data = daily_slope_kink_df 
+    data = daily_slope_kink_df
 )
 
 wmata_treated_only_daily_slope_kink_advertisement_binary_wamata_general_interaction <- lm(
@@ -953,49 +938,8 @@ tswift_fitted_df <- data.frame(
             pull()
 )
 
-ggplot(
-    daily_slope_kink_df %>%
-        filter(
-            title == "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow"
-        )
-) +
-    geom_point(
-        aes(
-            x = log_days_since_release,
-            y = cumulative_downloads
-        )
-    ) +
-    geom_line(
-        data = tswift_fitted_df,
-        aes(
-            x = log_days_since_release,
-            y = cumulative_downloads_pred,
-            color = as.factor(in_wmata_general_ad)
-        ),
-        linewidth = 1.2
-    ) +
-    theme_minimal()
-
-
-ggplot(daily_slope_kink_df %>%
-    filter(
-        episode_id %in% released_between_episode_ids(
-            cutoff_period_start_str = "2022-11-01",
-            cutoff_period_end_str = "2023-01-01",
-            release_dates_df
-        )
-    )
-) +
-    geom_point(
-        aes(
-            x = log_days_since_release,
-            y = cumulative_downloads,
-            color = in_wmata_general_ad
-        )
-    ) +
-    theme_minimal()
-
 ##### DMV/WMATA DIFF-IN-DIFF #####
+
 ######## DMV vs WHOLE OF COUNTRY DIFF-IN-DFF ########
 dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
     left_join(
@@ -1124,9 +1068,9 @@ fe_log_time_to_treat_did_release_control <- feols(
     data = dmv_msa_did_df
 )
 
+plot.new()
 iplot(
     fe_log_time_to_treat_did,
-    # fe_log_time_to_treat_did_release_control,
     xlab = "Relative Logged Days to Advertisement Start",
     main = "Cumulative Downloads DID Event Study (TWFE)"
 )
@@ -1141,6 +1085,12 @@ fe_time_to_treat_did <- feols(
     data = dmv_msa_did_df
 )
 
+iplot(
+    fe_time_to_treat_did,
+    xlab = "Days to Advertisement Start",
+    main = 'Cumulative Downloads DIDEvent Study (TWFE)'
+)
+
 fe_time_to_treat_did_release_control <- feols(
     cumulative_downloads ~ log_days_since_release +
         rel_days_to_ad_start +
@@ -1153,9 +1103,9 @@ fe_time_to_treat_did_release_control <- feols(
 )
 
 iplot(
-    fe_time_to_treat_did,
-    xlab = "Days to Advertisement Start",
-    main = 'Cumulative Downloads DIDEvent Study (TWFE)'
+    fe_time_to_treat_did_release_control,
+    xlab = "test",
+    main = "asdf"
 )
 
 fe_time_to_treat_daily_downloads <- feols(
@@ -1278,11 +1228,42 @@ dmv_nys_episode_level_did_results_df <- dmv_nys_episode_level_did_results_df %>%
         release_dates_df,
         by = "episode_id",
         multiple = "all"
-    ) %>%
-    view()
+    )
 
+fe_log_time_to_treat_dmv_nys <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        log_days_to_ad_start +
+        relevant_msa +
+        i(log_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_nys_did_df
+)
+
+iplot(
+    fe_log_time_to_treat_dmv_nys,
+    xlab = 'x',
+    main = 'masinasdf'
+)
+
+fe_time_to_treat_did_dmv_nys <- feols(
+    cumulative_downloads ~ log_days_since_release +
+        rel_days_to_ad_start +
+        relevant_msa +
+        i(rel_days_to_ad_start, relevant_msa) |
+        episode_id + as.factor(date),
+    cluster = ~episode_id,
+    data = dmv_nys_did_df
+)
+
+iplot(
+    fe_time_to_treat_did_dmv_nys,
+    xlab = "x",
+    main = "mainsqwer"
+)
 
 ##### REGRESSION TABLES #####
+
 ###### NAIVE OLS MODELS ######
 naive_ols_models <- list(
     t_14_ols_trailing_only,
@@ -1692,7 +1673,8 @@ ggsave(
 
 
 #### SIGNIFICANCE HEATMAP PLOTS #####
-# Daily-kink specifications
+
+###### Daily-kink specifications ######
 ggplot(
     daily_kink_results_df %>%
         filter(
@@ -1736,7 +1718,7 @@ ggplot(
     ) +
     theme_minimal()
 
-# DMV-NYS Diff-in-Diff specifications
+###### DMV-NYS Diff-in-Diff specifications ######
 ggplot(
     dmv_nys_episode_level_did_results_df %>%
         filter(
@@ -1847,26 +1829,3 @@ ggplot(dmv_msa_did_df) +
 
 
 #### SCRATCH ####
-
-
-mydata <- read.dta("http://dss.princeton.edu/training/Panel101.dta") %>%
-    mutate(
-        time = ifelse(year >= 1994, 1, 0),
-        treat = ifelse(
-            country %in% c(
-                "E", "F", "G"),
-                1, 0 ),
-        did = time * treat
-    ) %>%
-    view()
-
-
-did_model <- lm(
-    y ~ treat + time + did,
-    data = mydata
-)
-
-coeftest(
-    did_model,
-    vcov. = vcovHC(did_model, type = "HC2")
-)
