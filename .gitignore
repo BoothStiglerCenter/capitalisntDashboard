@@ -13,6 +13,9 @@ localDevTools.R
 renv/
 
 
+### Ignore all .tex auxiliary files
+**/*.synctex.gz
+
 ### Ignore all .csv files for the time being
 **/*.csv
 ### Ignore all .otf files because we don't want to push fonts

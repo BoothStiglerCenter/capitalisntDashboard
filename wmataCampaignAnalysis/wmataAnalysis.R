@@ -203,10 +203,10 @@ podcast_daily_downloads_df <- episodes_core_data_in %>%
     group_by(date) %>%
     mutate(
         gap_to_release = as.integer(
-            interval(start = date, end = release_date)
+            interval(start = release_date, end = date)
         )
     ) %>%
-    arrange(date, desc(gap_to_release)) %>%
+    arrange(date, gap_to_release) %>%
     mutate(
         ordered_from_closest_release = row_number(),
         active_back_expired_catalog = case_when(
@@ -1419,7 +1419,7 @@ recent_podcast_moving_avg_decomp <- ggplot(
     ) %>%
     filter(
         download_type %in% c(
-            "avg_all_daily_downloads_14"
+            "avg_grouped_daily_downloads_14"
         ),
         date >= ymd("2022-10-01")
     )
@@ -1443,14 +1443,14 @@ recent_podcast_moving_avg_decomp <- ggplot(
     ) +
     scale_y_continuous(
         labels = scales::comma,
-        expand = expand_scale(mult = c(0, 0)),
+        expand = expansion(mult = c(0, 0)),
         position = "right"
     ) +
     scale_x_date(
         name = "Date",
         breaks = date_breaks("1 month"),
         labels = label_date_short(format = c("%y", "%b")),
-        expand = expand_scale(mult = c(0,0.05))
+        expand = expansion(mult = c(0,0.05))
     ) +
     labs(
         title = "**Capitalisn't: Composition of daily-downloads moving average**", 
@@ -1474,7 +1474,7 @@ alltime_podcast_moving_avg_decomp <- ggplot(
     ) %>%
     filter(
         download_type %in% c(
-            "avg_all_daily_downloads_14"
+            "avg_grouped_daily_downloads_14"
         )
     )
 ) +
@@ -1901,7 +1901,7 @@ ggplot(
     ) +
     geom_vline(
         xintercept = 0,
-        linwidth = 0,
+        linewidth = 1,
         color = "black"
     ) +
     geom_text(
@@ -1914,7 +1914,7 @@ ggplot(
         fontface = "italic",
         nudge_x = 0.2,
         hjust = 0
-    ) + 
+    ) +
     geom_ribbon(
         aes(
             x = log_days_to_ad_start,
@@ -1946,7 +1946,10 @@ ggplot(
         subtitle = "Point estimates and 95% confidence interval",
         caption = "Estimates account for episode- and day-fixed effects. Errors are clustered at the episode level."
     ) +
-    theme_stigler()
+    theme_stigler() +
+    theme(
+        panel.grid.minor.y = element_line()
+    )
 
 ggsave(
     plot = last_plot(),
