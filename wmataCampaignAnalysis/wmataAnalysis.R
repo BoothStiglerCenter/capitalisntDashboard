@@ -426,84 +426,17 @@ episode_level_summ_df <- daily_downloads_df %>%
         )
     )
 
-# stargazer(
-#     as.data.frame(episode_level_summ_df),
-#     summary.stat = c("min", "p25", "mean", "median", "p75", "max", "n"),
-#     digits = 1,
-#     style = "qje"
-# )
-
-# recent_20_episode_level_summ_df <- daily_downloads_df %>%
-#     select(
-#         episode_id, daily_downloads, days_since_release, cumulative_downloads
-#     ) %>%
-#     filter(
-#         episode_id %in% recent_n_episode_ids(
-#             n = 20,
-#             release_dates_df
-#         )
-#     ) %>%
-#     group_by(episode_id) %>%
-#     mutate(
-#         downloads_t_14 = ifelse(
-#             days_since_release == 14,
-#             cumulative_downloads,
-#             NA
-#         ),
-#         downloads_t_28 = ifelse(
-#             days_since_release == 28,
-#             cumulative_downloads,
-#             NA
-#         )
-#     ) %>%
-#     summarise(
-#         days_since_release = max(days_since_release, na.rm = TRUE),
-#         downloads_t_14 = max(downloads_t_14, na.rm = TRUE),
-#         downloads_t_28 = max(downloads_t_28, na.rm = TRUE)
-#     ) %>%
-#     mutate(
-#         downloads_t_14 = ifelse(
-#             downloads_t_14 == -Inf,
-#             NA, downloads_t_14
-#         ),
-#         downloads_t_28 = ifelse(
-#             downloads_t_28 == -Inf,
-#             NA, downloads_t_28
-#         ),
-#     )
-
-# stargazer(
-#     as.data.frame(recent_20_episode_level_summ_df),
-#     summary.stat = c("min", "p25", "mean", "median", "p75", "max", "n"),
-#     digits = 1,
-#     style = "qje"
-# )
-
-
-# test_df <- episode_level_summ_df %>%
-#     mutate(
-#         recent_20 = ifelse(
-#             episode_id %in% recent_n_episode_ids(
-#                 n = 20,
-#                 release_dates_df
-#             ),
-#             "Recent 20", "Back Catalog"
-#         )
-#     ) %>%
-#     view()
 
 datasummary(
     (` ` = recent_20) * ((`Days since release` = days_since_release) +
     (`Downloads ($t=14$)` = downloads_t_14) +
     (`Downloads ($t=28$)` = downloads_t_28)) ~
         Min + P25 + Mean + Median + P75 + Max,
-    coef_map = c(
-        "days_since_release" = "Days Since Release",
-        "downloads_t_14" = "Downloads ($t=14$)"
-    ),
+    fmt = 0,
     title = "Episode-level Summary Statistics \\label{tab:ep-summ-stats}",
+    note = "Values rounded to nearest integer",
     escape = FALSE,
-    output = "wmataCampaignAnalysis/tables/episode-level-summary-stats.tex",,
+    output = "wmataCampaignAnalysis/tables/episode-level-summary-stats.tex",
     data = episode_level_summ_df
 )
 
