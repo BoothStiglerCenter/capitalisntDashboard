@@ -107,9 +107,20 @@ Figure \ref{fig:recent_20_cumul_perf} also exhibits the evolving performance of 
 In short, there appears to be a considerable weight of evidence that suggests that \textit{Capitalisn't} is a podcast that is growing over time, independent of paid-for advertising efforts. Thus, against this backdrop of secular growth, paid-for advertising would have to be justified by exceptional returns to expenditure.
 
 \section{Policy Evaluation}
+This section will report increasingly well-specified estimates of whether the WMATA advertising campaign had significant effects on the performance of the podcast.
 
+\subsection{Naive Episode-Level OLS}
+The most naive specification to test whether the ad campaign has an effect would test for whether cumulative downloads (at some point in time) are higher for episodes that are ``treated'' by the ad campaign than those that are not. An episode-level OLS estimation as decribed above may be specified as follows:
 
-\subsection{Naive Episode Level OLS}
+\begin{equation}
+  \label{ep-level-naive-ols}
+  \text{CumulativeDownloads}_i = \alpha + \beta_1\text{Advertisement}_i + X_i +\varepsilon_i, 
+\end{equation}
+
+where for each episode $i$, cumulative downloads would be estimated as a function whether or not an episode has experienced the Advertisement (a binary variable) treatment. Thus, we would expect $\beta_1$, the coefficient of interest, to be positive. In \ref{ep-level-naive-ols} $X_i$ is a vector of episode-level control variables that might also be correlated with cumulative downloads. The results of a series of OLS estimates of the above sepcfication are presented in Table .
+
+\input{tables/test_t28.tex}
+
 
 \begin{landscape}
     \thispagestyle{empty}
@@ -144,11 +155,6 @@ In short, there appears to be a considerable weight of evidence that suggests th
       \end{tabular}
       \end{table}
 \end{landscape}    
-
-
-
-
-
 
 \subsection{DMV Diff-in-Diff}
 

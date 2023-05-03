@@ -1,4 +1,6 @@
 #### PREAMBLE ####
+library(modelsummary)
+library(kableExtra)
 library(tidyverse)
 library(lubridate)
 library(stargazer)
@@ -735,6 +737,59 @@ stargazer(
     se = t_28_ols_RSEs
 )
 
+custom_models_list <- list(
+    t_14_ols_trailing_only,
+    t_14_ols_trailing_wmata_general,
+    t_14_ols_trailing_first_ad_experiment,
+    t_28_ols_trailing_only,
+    t_28_ols_trailing_wmata_general,
+    t_28_ols_trailing_first_ad_experiment,
+    t_28_ols_trailing_autoreg,
+    t_28_ols_trailing_twice_autoreg
+)
+
+glance_custom.lm <- function(x, ...) {
+    dependent_variable <- as.character(formula(x)[2])
+    out <- data.frame(
+        "DV" = dependent_variable
+    )
+    return(out)
+}
+
+tidy_custom.lm <- function(x, ...) {
+    s <- summary(x)$coefficients
+    out <- data.frame(
+        term = row.names(s),
+        estimate = s[, 1]
+    )
+    return(out)
+}
+
+
+test_tab <- modelsummary(
+    custom_models_list,
+    stars = TRUE,
+    coef_rename = c(
+        "(Intercept)" = "Intercept",
+        "trailing5_t_28_avg" = "Trailing Avg. ($n=5$, $t=28$)",
+        "aired_wmata_digital_ad" = "WMATA Digital Ad",
+        "aired_first_ad_experiment" = "Economist/Vox Ad",
+        "trailing5_t_14_avg" = "Trailing Avg. ($n=5$, $t=14$)"
+    ),
+    gof_omit = "AIC|BIC|F|RMSE|Lik",
+    output = "latex",
+    escape = FALSE,
+) %>%
+    add_header_above(
+        c(" " = 1, "Cumul Downloads ($t=14$)" = 3, "Cumul Downloads ($t=28$)" = 5)
+    )
+
+save_kable(
+    test_tab,
+    # format = "latex",
+    float = FALSE,
+    file = "wmataCampaignAnalysis/tables/test_t28.tex"
+)
 
 
 ##### DAILY DOWNLOADS DISCONTINUITY/KINK ####
