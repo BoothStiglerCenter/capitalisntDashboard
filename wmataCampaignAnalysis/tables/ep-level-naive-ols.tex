@@ -1,0 +1,29 @@
+\begin{table}
+
+\caption{Episode-level Naive OLS estimates \label{tab:ep-level-naive-ols}}
+\centering
+\begin{tabular}[t]{lcccccccc}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{3}{c}{Cumul. Downloads ($t=14$)} & \multicolumn{5}{c}{Cumul. Downloads ($t=28$)} \\
+\cmidrule(l{3pt}r{3pt}){2-4} \cmidrule(l{3pt}r{3pt}){5-9}
+  & (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8)\\
+\midrule
+Trailing Avg. ($n=5$, $t=14$) & \num{0.974}*** & \num{0.976}*** & \num{0.977}*** &  &  &  &  & \num{2.564}**\\
+ & (\num{0.026}) & (\num{0.027}) & (\num{0.028}) &  &  &  &  & (\num{0.817})\\
+Trailing Avg. ($n=5$, $t=28$) &  &  &  & \num{0.985}*** & \num{0.989}*** & \num{0.990}*** & \num{0.985}*** & \num{-1.246}+\\
+ &  &  &  & (\num{0.021}) & (\num{0.021}) & (\num{0.021}) & (\num{0.021}) & (\num{0.705})\\
+WMATA Digital Ad &  & \num{-160.259} & \num{-183.939} &  & \num{-452.936} & \num{-465.267} &  & \\
+ &  & (\num{864.545}) & (\num{866.056}) &  & (\num{978.046}) & (\num{978.827}) &  & \\
+Economist/Vox Ad &  &  & \num{-392.623} &  &  & \num{-317.218} &  & \\
+ &  &  & (\num{508.415}) &  &  & (\num{978.086}) &  & \\
+Intercept & \num{21.218} & \num{11.097} & \num{11.249} & \num{-43.399} & \num{-71.892} & \num{-72.869} & \num{-43.399} & \num{-250.048}\\
+ & (\num{210.497}) & (\num{216.547}) & (\num{217.071}) & (\num{192.090}) & (\num{192.552}) & (\num{192.743}) & (\num{192.090}) & (\num{226.722})\\
+\midrule
+Num.Obs. & \num{147} & \num{147} & \num{147} & \num{146} & \num{146} & \num{146} & \num{146} & \num{146}\\
+R2 & \num{0.937} & \num{0.937} & \num{0.937} & \num{0.944} & \num{0.944} & \num{0.944} & \num{0.944} & \num{0.949}\\
+R2 Adj. & \num{0.936} & \num{0.936} & \num{0.936} & \num{0.944} & \num{0.944} & \num{0.943} & \num{0.944} & \num{0.948}\\
+\bottomrule
+\multicolumn{9}{l}{\rule{0pt}{1em}+ p $<$ 0.1, * p $<$ 0.05, ** p $<$ 0.01, *** p $<$ 0.001}\\
+\multicolumn{9}{l}{\rule{0pt}{1em}Standard errors presented in parentheses are heteroskedastic-robust errors}\\
+\end{tabular}
+\end{table}

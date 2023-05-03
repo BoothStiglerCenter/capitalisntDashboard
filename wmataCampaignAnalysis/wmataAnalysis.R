@@ -728,16 +728,15 @@ t_28_ols_RSEs <- list(
     t_28_ols_trailing_twice_autoreg_RSE
 )
 
-stargazer(
-    t_28_ols_models,
-    dep.var.labels = c("Cumulative downloads ($t=28$)"),
-    covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Econ./Vox Ad."),
-    omit.stat = c("ser", "f", "rsq"),
-    no.space = TRUE,
-    se = t_28_ols_RSEs
-)
-
-custom_models_list <- list(
+# stargazer(
+#     t_28_ols_models,
+#     dep.var.labels = c("Cumulative downloads ($t=28$)"),
+#     covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Econ./Vox Ad."),
+#     omit.stat = c("ser", "f", "rsq"),
+#     no.space = TRUE,
+#     se = t_28_ols_RSEs
+# )
+naive_ols_models <- list(
     t_14_ols_trailing_only,
     t_14_ols_trailing_wmata_general,
     t_14_ols_trailing_first_ad_experiment,
@@ -748,47 +747,54 @@ custom_models_list <- list(
     t_28_ols_trailing_twice_autoreg
 )
 
-glance_custom.lm <- function(x, ...) {
-    dependent_variable <- as.character(formula(x)[2])
-    out <- data.frame(
-        "DV" = dependent_variable
-    )
-    return(out)
-}
+# glance_custom.lm <- function(x, ...) {
+#     dependent_variable <- as.character(formula(x)[2])
+#     out <- data.frame(
+#         "DV" = dependent_variable
+#     )
+#     return(out)
+# }
 
-tidy_custom.lm <- function(x, ...) {
-    s <- summary(x)$coefficients
-    out <- data.frame(
-        term = row.names(s),
-        estimate = s[, 1]
-    )
-    return(out)
-}
+# tidy_custom.lm <- function(x, ...) {
+#     s <- summary(x)$coefficients
+#     out <- data.frame(
+#         term = row.names(s),
+#         estimate = s[, 1]
+#     )
+#     return(out)
+# }
 
 
-test_tab <- modelsummary(
-    custom_models_list,
+naive_ols_models_tab <- modelsummary(
+    naive_ols_models,
     stars = TRUE,
-    coef_rename = c(
-        "(Intercept)" = "Intercept",
+    coef_map = c(
+        "trailing5_t_14_avg" = "Trailing Avg. ($n=5$, $t=14$)",
         "trailing5_t_28_avg" = "Trailing Avg. ($n=5$, $t=28$)",
         "aired_wmata_digital_ad" = "WMATA Digital Ad",
         "aired_first_ad_experiment" = "Economist/Vox Ad",
-        "trailing5_t_14_avg" = "Trailing Avg. ($n=5$, $t=14$)"
+        "(Intercept)" = "Intercept"
     ),
-    gof_omit = "AIC|BIC|F|RMSE|Lik",
+    gof_omit = "AIC|BIC|F|RMSE|Lik|Std.Errors",
+    title = "Episode-level Naive OLS estimates \\label{tab:ep-level-naive-ols}",
+    notes = "Standard errors presented in parentheses are heteroskedastic-robust errors",
+    vcov = "robust",
     output = "latex",
-    escape = FALSE,
+    escape = FALSE
 ) %>%
     add_header_above(
-        c(" " = 1, "Cumul Downloads ($t=14$)" = 3, "Cumul Downloads ($t=28$)" = 5)
+        c(
+            " " = 1,
+            "Cumul. Downloads ($t=14$)" = 3,
+            "Cumul. Downloads ($t=28$)" = 5
+        ),
+        escape = FALSE
     )
 
 save_kable(
-    test_tab,
-    # format = "latex",
+    naive_ols_models_tab,
     float = FALSE,
-    file = "wmataCampaignAnalysis/tables/test_t28.tex"
+    file = "wmataCampaignAnalysis/tables/ep-level-naive-ols.tex"
 )
 
 
