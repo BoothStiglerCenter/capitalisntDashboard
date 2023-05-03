@@ -1,21 +1,18 @@
-\begin{table}[!htbp] \centering 
-    \caption{Episode-level Cumulative Downloads Summary Statistics} 
-    \label{episode-level-summary-stats} 
-  \begin{tabular}{@{\extracolsep{5pt}}lcccccccc} 
-  \\[-1.8ex]\hline \\[-1.8ex]
-  Statistic & \multicolumn{1}{c}{Min} & \multicolumn{1}{c}{Pctl(25)} & \multicolumn{1}{c}{St. Dev.} & \multicolumn{1}{c}{Mean} & \multicolumn{1}{c}{Median} & \multicolumn{1}{c}{Pctl(75)} & \multicolumn{1}{c}{Max} & \multicolumn{1}{c}{N} \\
-  \hline 
-  \hline \\[-1.8ex]
-  \textsc{A: Full sample} & & & & & & & & \\
-  Days since release & 6 & 503 & 573.0 & 981.5 & 993 & 1,469 & 1,942 & 151 \\
-  Downloads $t=14$ & 407 & 4,925 & 3,713.0 & 8,339.5 & 7,623 & 11,709 & 19,581 & 149 \\ 
-  Downloads $t=28$ & 1,847 & 5,485 & 4,125.4 & 9,415.3 & 8,661 & 13,456.2 & 18,797 & 148 \\
-  \hline \\[-1.8ex]
-  \textsc{B: Recent 20} & & & & & & & & \\
-  Days since release & 6 & 53.2 & 72.8 & 112.0 & 104 & 170.5 & 237 & 20 \\
-  Downloads $t=14$ & 11,928 & 12,319.5 & 1,879.7 & 13,804.3 & 13,576 & 14,301.5 & 19,581 & 18 \\ 
-  Downloads $t=28$ & 13,303 & 14,000 & 1,479.4 & 15,349.9 & 15,096 & 16,247 & 18,797 & 17 \\
-  \hline
-  \hline \\[-1.8ex] 
-  \end{tabular}
+\begin{table}
+
+\caption{Episode-level Summary Statistics \label{tab:ep-summ-stats}}
+\centering
+\begin{tabular}[t]{llrrrrrr}
+\toprule
+  &    & Min & P25 & Mean & Median & P75 & Max\\
+\midrule
+Back Catalog & Days since release & \num{257} & \num{708} & \num{1128} & \num{1120} & \num{1556} & \num{1962}\\
+ & Downloads ($t=14$) & \num{407} & \num{4752} & \num{7622} & \num{7422} & \num{9593} & \num{16225}\\
+ & Downloads ($t=28$) & \num{1847} & \num{5295} & \num{8683} & \num{8207} & \num{11092} & \num{18583}\\
+Recent 20 & Days since release & \num{12} & \num{66} & \num{120} & \num{110} & \num{176} & \num{243}\\
+ & Downloads ($t=14$) & \num{11928} & \num{12994} & \num{14125} & \num{13734} & \num{14536} & \num{19581}\\
+ & Downloads ($t=28$) & \num{13303} & \num{14893} & \num{15824} & \num{15413} & \num{16252} & \num{22324}\\
+\bottomrule
+\multicolumn{8}{l}{\rule{0pt}{1em}Values rounded to nearest integer}\\
+\end{tabular}
 \end{table}
