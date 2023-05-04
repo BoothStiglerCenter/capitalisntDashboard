@@ -118,56 +118,68 @@ The most naive specification to test whether the ad campaign has an effect would
   \text{CumulativeDownloads}_i = \alpha + \beta_1\text{Advertisement}_i + X_i +\varepsilon_i, 
 \end{equation}
 
-where for each episode $i$, cumulative downloads would be estimated as a function whether or not an episode has experienced the Advertisement (a binary variable) treatment. Thus, we would expect $\beta_1$, the coefficient of interest, to be positive. In (\ref{ep-level-naive-ols}) $X_i$ is a vector of episode-level control variables that might also be correlated with cumulative downloads. The results of a series of OLS estimates of the above specification are presented in Table \ref{tab:ep-level-naive-ols}. In this table, Columns (1) through (3) present regression estimates where the dependent variable is episode-level cumulative downloads at 14 days following release. Columns (4) through (8) present estimates where the dependent variable is cumulative downloads 28 days following release. These definitions of performance are preferred because of the podcast's usual biweekly release cadence.\\
+where for each episode $i$, cumulative downloads would be estimated as a function whether or not an episode has experienced the Advertisement (a binary variable) treatment. Thus, we would expect $\beta_1$, the coefficient of interest, to be positive. In \eqref{ep-level-naive-ols}, $X_i$ is a vector of episode-level control variables that might also be correlated with cumulative downloads. The results of a series of OLS estimates of the above specification are presented in Table \ref{tab:ep-level-naive-ols}. In this table, Columns (1) through (3) present regression estimates where the dependent variable is episode-level cumulative downloads at 14 days following release. Columns (4) through (8) present estimates where the dependent variable is cumulative downloads 28 days following release. These definitions of performance are preferred because of the podcast's usual biweekly release cadence.\\
 
 \begin{landscape}
   \input{tables/ep-level-naive-ols.tex}
 \end{landscape}
 
-Though the regression estimates presented in Table \ref{tab:ep-level-naive-ols} do not exhibit statistical significance for either the WMATA or Economist/Vox Ad campaign indicator variables, the ``Trailing Average'' regressors exhibit high levels of statistical significance across specifications.\footnote{These regressors are constructed as the the average cumulative downloads of the previous five ($n=5$) episodes 14 ($t=14$) or 28 days ($t=28$) following release.} Notably, the central point estimates are all less than 1 (Column (8) results are explicated at greater length below). This would suggest that podcast performance as defined by the relevant dependent variable is \textit{decaying} over time. For example, in the terms of the estimates presented in Column (1), an episode's cumulative downloads 14 days following release is approximately 97.4\% of the average of the previous five episodes at the same time following their own releases. This runs counter to the story represented by the summary statistics and motivating figures above: that there appears to be a largely secular pattern of growth in downloads (consider the upward trend of light-blue points in Figure \ref{fig:all_1142842_cumul_perf}). Note however, that he for all of these coefficient estimates, 1 lies on or within the 95\% confidence interval. In fact, the average upper-bound of the confidence intervals for the Trailing Average regressor in these 7 specifications is 1.002. A 2\% growth rate relative to the average of the previous 5 episodes suggests a doubling time of approximately 35 periods. With a biweekly release cadence, this corresponds to approximatley 1 year and 5 months, not entirely inconsistent with the growth that is visually described in Figure \ref{fig:all_1142842_cumul_perf}. Of course, the confidence interval on the central point estimates also includes values considerably below 1. This is consistent with the performance of the podcast not monotonically improving. On balance, I would contend that these estimates are weak evidence of the podcast's growth over time.\\
+Though the regression estimates presented in Table \ref{tab:ep-level-naive-ols} do not exhibit statistical significance for either the WMATA or Economist/Vox Ad campaign indicator variables, the ``Trailing Average'' regressors exhibit high levels of statistical significance across specifications.\footnote{These regressors are constructed as the the average cumulative downloads of the previous five ($n=5$) episodes 14 ($t=14$) or 28 days ($t=28$) following release.} Notably, the central point estimates are all less than 1 (Column (8) results are explicated at greater length below). This would suggest that podcast performance as defined by the relevant dependent variable is \textit{decaying} over time. For example, in the terms of the estimates presented in Column (1), an episode's cumulative downloads 14 days following release is approximately 97.4\% of the average of the previous five episodes at the same time following their own releases. This runs counter to the story represented by the summary statistics and motivating figures above: that there appears to be a largely secular pattern of growth in downloads (consider the upward trend of light-blue points in Figure \ref{fig:all_1142842_cumul_perf}). Note however, that for all of these coefficient estimates, 1 lies on or within the 95\% confidence interval.\\
+
+In fact, the average upper-bound of the confidence intervals for the Trailing Average regressor in these 7 specifications is 1.002. A 2\% growth rate relative to the average of the previous 5 episodes suggests a doubling time of approximately 35 periods. With a biweekly release cadence, this corresponds to approximatley 1 year and 5 months, not entirely inconsistent with the growth that is visually described in Figure \ref{fig:all_1142842_cumul_perf}. Of course, the confidence interval on the central point estimates also includes values considerably below 1. This is consistent with the performance of the podcast not monotonically improving. On balance, I would contend that these estimates are weak evidence of the podcast's growth over time.\\
 
 
 The ``WMATA Digital Ad'' and ``Economist/Vox Ad'' regressors are both indicator variables that are coded as 1 if the episode was aired during either of these treatment periods. In short, they exhibit no meaningful degree of statistical significance. That is, after controlling for the growth of the podcast over time with the Trailing Average regressor, the advertisement campaigns do not appear to be predictive of higher cumulative downloads for treated episodes, as one might hypothesize. This is further tested in other specifications below. Column (8) in Table \ref{tab:ep-level-naive-ols} is included as another test of the podcast's serial autocorrelation with itself (at the episode-level). Note that both of the Trailing Average regressors exhibit (at varying levels of statistical significance). The 14-day regressor appears to be both very statistically significant and very positive and greater than 1. The coefficient is on the 28-day regressor however, is statistically significant at the 10\% level and negative. Both of these coefficients have very large conffidence intervals but the summation of the two suggest a time-trend that is positive, consistent with the evidence presented above.
 
 \subsection{Regression Kinks}
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/recent_20_episodes_linear_cumul_perf.png}
+  \caption{}
+  \label{fig:recent_20_linear_cumul_perf}
+\end{figure}
 
+As demonstrated by Figure \ref{fig:recent_20_cumul_perf} and Figure \ref{fig:recent_20_linear_cumul_perf}, the linearized equivalent, most performance ``trajectory'' of most episodes is remarkably predictable. Cumulative downloads exhibit a logarithmic (daily downloads exhibit an exponential decay) behavior. One way of assessing the efficacy of the WMATA ad campaign would be to test if, on days in which the advertisement is in effect, podcast performance statistically significantly deviates from this otherwise predictable trajectory.\\
+
+I attempt to operationalize this at the podcast and episode levels. Identifying a ``kink'' in podcast performance around the advertising campaign in an OLS setting can be done as follows:
+
+\begin{align}
+  \label{kink-ols}
+    \text{CumulativeDownloads}_i &= \alpha + \beta_1\log{\text{DaysSinceRelease}}_i + \beta_2\text{Adv}_i\\ \nonumber
+      & +\beta_3(\log{\text{DaysSinceRelease}} \times \text{Adv})_i + X_i + \varepsilon_i
+\end{align}
+
+Here, the interpretation of the estimated coefficients are quite intuitive: $\alpha$ represents estimated first-day downloads ($\log(1)=0$). $\beta_1$ captures the linear slope that describes the performance trajectory of an episode. Because Adv is an indicator variable for whether the observation (daily frequency cumulative downloads) is treated by advertising, $\beta_2$ can be thought of as the step-wise increase in the number of downloads that the unit of observation experiences at the beginning of the advertising period (more on the interpretation of this coefficient below). In \eqref{kink-ols}, $\beta_3$ is the coefficient of interest and represents the magnitude of the interaction term between the $\log$DaysSinceRelease explanatory variable and the advertising treatment. Under the intuitive hypothesis that advertising should have a positive effect on daily downloads, the sign on this coefficient is expected to be positive. A statistically significant, positive $\beta_3$ estimate would imply that advertising \textit{does} have an effect and improves podcast performance relative to the its pre-advertising trajectory. $X_i$ is a vector of control variables (largely unavailable in our data setting) and $\varepsilon$ represents an error term.\\
+
+Throughout \eqref{kink-ols} terms are assigned the entity sub-script $i$. Entities however, can be specified at the podcast or episode levels. The implications of this are manifold but I restrict my attention to episode-level analysis. Additionally, if we estimate \eqref{kink-ols} for all episodes simultaneously we suffer from sources of bias beyond those that are present in other estimates.\footnote{See section INSERT SECTION NUMBER REFERENCE HERE for more information on shortcomings} In particular, because the advertisement period is fixed in real terms (calendar dates), treatment in relative terms (note that this specification uses a relative days-since-release measure as a regressor) is staggered. So, for purposes of econometric simplicity, we estimate this model separately for each episode.\\
+
+For illustrative purposes, consider Figure \ref{tswift_fitted}, which plots the cumulative downloads of against the logarithm of days since release for the episode, ``Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow,'' release on December 12, 2022. The lines represent the fitted values estimated by \eqref{kink-ols} for this episode. This is an ideal episode to consider because it was release prior to the beginning of the advertising period and so had an established ``trajectory'' prior to being treated. The advertising period is plotted in blue whereas untreated observations are plotted in red.\\
+ 
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/tswift_daily_kink_plot.png}
+  \caption{}
+  \label{fig:tswift_fitted}
+\end{figure}
+  
+Note that for the advertising period, the slope of the fitted line is slightly greater than for the untreated period. Indeed, closer inspection of the particular models that the coefficient on th  interaction term, $\beta_3$, is in fact statistically significantly positive. The magnitude on the coefficient is small but this warrants closer inspection.\\
+
+Generalizing this investigation, I re-esitmate \eqref{kink-ols} for the 50 most recent episodes (as those being plausibly treated by the advertising campaign); that is, episodes released since mid-July 2021. For such episode-specific regression, the sign and statistical significance of the estimated coefficients are plotted in a heatmap, as in Figure \ref{fig:kink-ols-heatmap}.\\ 
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/daily_kink_sig_heatmap.png}
+  \caption{}
+  \label{fig:kink-ols-heatmap}
+\end{figure}
+
+These results appear prima facie encouraging. For almost every episode, the relevant $\beta_3$ coefficient on the interaction appears to be statistically significant and positive. A naive event-study style interpretation of these results suggests that the advertisement campaign was at least superficially effective: it caused downloads to increase relative to the expected trajectory for effectively every episode.\\
+
+However, this interpretation is flawed due to potentially attributing a spurious increase, perhaps driven by some unobserved variable, to the advertising treatment. In fact this is quite likely given that towards the end of the advertising period, the podcast briefly switched to a weekly release cadence, potentially increasing the apparent performance of episodes due simply to new listeners (attracted to the podcast due to secular growth associated with publishing episodes more regularly) perusing the back catalog of episodes. So, additional analysis is required.
 
 \subsection{DMV Diff-in-Diff}
+In addition to provide daily temporal resolution, the Simplecast API also provides a relatively high degree of geographic resolution to downloads data. Simpelcast provides an API endpoint that returns the at-present cross-sectional cumulative downloads data at the sub-state-location level throughout the United States. In order to construct a panel of episode-location-daily downloads data, I queried the API every day at midnight.\\
 
-% \begin{table}[!htbp] \centering 
-%   \caption{}
-%   \label{}
-% \begin{tabular}{@{\extracolsep{5pt}}lcc}
-% \\[-1.8ex]\hline
-% \hline \\[-1.8ex]
-%  & \multicolumn{2}{c}{\textit{Dependent variable:}} \\
-% \cline{2-3} 
-% \\[-1.8ex] & \multicolumn{2}{c}{cumulative\_downloads} \\
-% \\[-1.8ex] & (1) & (2)\\
-% \hline \\[-1.8ex]
-%  log\_days\_since\_release & 2,718.561 & 2,718.561$^{***}$ \\ 
-%   &  & (257.808) \\
-%   & & \\
-%  in\_wmata\_general\_ad &  &  \\
-%   &  &  \\
-%   & & \\
-%  log\_days\_since\_release:in\_wmata\_general\_ad &  &  \\
-%   &  &  \\
-%   & & \\
-%  Constant & 8,144.782 & 8,144.782$^{***}$ \\ 
-%   &  & (228.348) \\
-%   & & \\
-% \hline \\[-1.8ex]
-% Observations & 5 & 5 \\
-% R$^{2}$ & 0.982 & 0.982 \\
-% Adjusted R$^{2}$ & 0.976 & 0.976 \\
-% Residual Std. Error (df = 3) & 267.810 & 267.810 \\
-% F Statistic (df = 1; 3) & 166.468$^{***}$ & 166.468$^{***}$ \\ 
-% \hline
-% \hline \\[-1.8ex]
-% \textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\
-% \end{tabular}
-% \end{table}
-
+Using this panel, we are able to test the effectiveness of the advertising campaign not only in time (as the previous kink specification described by \eqref{kink-ols}) 
 
 \end{document}
