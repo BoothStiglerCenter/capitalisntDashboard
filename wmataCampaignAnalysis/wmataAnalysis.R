@@ -541,16 +541,6 @@ t_14_ols_RSEs <- list(
 )
 
 
-stargazer(
-    t_14_ols_models,
-    dep.var.labels = c("Cumulative downloads ($t=14$)"),
-    covariate.labels = c("Trailing Avg. ($n=5$)", "WMATA Ad.", "Econ./Vox Ad."),
-    omit.stat = c("ser", "f", "rsq"),
-    no.space = TRUE,
-    se = t_14_ols_RSEs
-)
-
-
 ##### NAIVE T=28 EPISODE-LEVEL OLS #####
 t_28_ols_df <- daily_downloads_df %>%
     select(
@@ -695,14 +685,7 @@ t_28_ols_RSEs <- list(
     t_28_ols_trailing_twice_autoreg_RSE
 )
 
-# stargazer(
-#     t_28_ols_models,
-#     dep.var.labels = c("Cumulative downloads ($t=28$)"),
-#     covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Econ./Vox Ad."),
-#     omit.stat = c("ser", "f", "rsq"),
-#     no.space = TRUE,
-#     se = t_28_ols_RSEs
-# )
+
 naive_ols_models <- list(
     t_14_ols_trailing_only,
     t_14_ols_trailing_wmata_general,
@@ -814,12 +797,12 @@ daily_slope_kink_advertisement_binary_any_ad <- lm(
 )
 
 daily_slope_kink_advertisement_binary_any_interaction <- lm(
-    cumulative_downloads ~ log_days_since_release + in_any_ad + log_days_since_release*in_any_ad,
+    cumulative_downloads ~ log_days_since_release + in_any_ad + log_days_since_release:in_any_ad,
     data = daily_slope_kink_df
 )
 
 daily_slope_kink_advertisement_binary_wmata_general_interaction <- lm(
-    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release*in_wmata_general_ad,
+    cumulative_downloads ~ log_days_since_release + in_wmata_general_ad + log_days_since_release:in_wmata_general_ad,
     data = daily_slope_kink_df
 )
 
@@ -1371,38 +1354,6 @@ iplot(
 
 ##### REGRESSION TABLES #####
 
-###### NAIVE OLS MODELS ######
-naive_ols_models <- list(
-    t_14_ols_trailing_only,
-    t_14_ols_trailing_wmata_general,
-    t_14_ols_trailing_first_ad_experiment,
-    t_28_ols_trailing_only,
-    t_28_ols_trailing_wmata_general,
-    t_28_ols_trailing_first_ad_experiment,
-    t_28_ols_trailing_autoreg,
-    t_28_ols_trailing_twice_autoreg
-)
-
-naive_ols_models_RSEs <- list(
-    t_14_ols_trailing_only_RSE,
-    t_14_ols_trailing_wmata_general_RSE,
-    t_14_ols_trailing_first_ad_experiment_RSE,
-    t_28_ols_trailing_only_RSE,
-    t_28_ols_trailing_wmata_general_RSE,
-    t_28_ols_trailing_first_ad_experiment_RSE,
-    t_28_ols_trailing_autoreg_RSE,
-    t_28_ols_trailing_twice_autoreg_RSE
-)
-
-stargazer(
-    naive_ols_models,
-    dep.var.labels = c("Downloads ($t=14$)", "Downloads ($t=28$)"),
-    order = c("trailing5_t_14_avg", "trailing5_t_28_avg"),
-    covariate.labels = c("Trailing Avg. ($n=5, t=14$)", "Trailing Avg. ($n=5, t=28$)", "WMATA Ad.", "Economist/Vox Ad."),
-    no.space = TRUE,
-    omit.stat = c("ser", "f", "rsq"),
-    se = naive_ols_models_RSEs
-)
 
 ### PLOTS ###
 
@@ -1490,6 +1441,9 @@ recent_podcast_moving_avg_decomp
 ggsave(
     plot = recent_podcast_moving_avg_decomp,
     filename = "wmataCampaignAnalysis/figures/recent_podcast_moving_avg_decomp.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
     dpi = 300
 )
 
@@ -1544,6 +1498,9 @@ alltime_podcast_moving_avg_decomp
 ggsave(
     plot = alltime_podcast_moving_avg_decomp,
     filename = "wmataCampaignAnalysis/figures/alltime_podcast_moving_avg_decomp.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
     dpi = 300
 )
 
@@ -1595,6 +1552,9 @@ recent_20_episodes_cumul_perf
 ggsave(
     plot = recent_20_episodes_cumul_perf,
     filename = "wmataCampaignAnalysis/figures/recent_20_episodes_cumul_perf.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
     dpi = 300
 )
 
@@ -1630,7 +1590,7 @@ alltime_episodes_cumul_perf <- ggplot(
     ) +
     labs(
         title = "**Capitalisn't: Cumulative daily downloads**",
-        subtitle = "20 most recent episodes",
+        subtitle = "All episodes",
         tag = "Figure 3B"
     ) +
     theme_stigler()
@@ -1638,8 +1598,112 @@ alltime_episodes_cumul_perf
 ggsave(
     plot = alltime_episodes_cumul_perf,
     filename = "wmataCampaignAnalysis/figures/alltime_episodes_cumul_perf.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
     dpi = 300
 )
+
+##### CUMULATIVE DOWNLOADS --LINEARIZED-- GGPLOTS #####
+
+recent_20_episodes_linear_cumul_perf <- ggplot(
+    daily_downloads_df %>%
+        filter(
+            episode_id %in% recent_n_episode_ids(
+                n = 20,
+                release_dates_df
+            )
+        ) %>%
+        mutate(log_days_since_release = log(days_since_release))
+) +
+    geom_line(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            group = episode_id,
+            color = as.numeric(release_date)
+        ),
+        linewidth = 1.5
+    ) +
+    scale_color_stigler(
+        "blues_2",
+        reverse = TRUE,
+        discrete = FALSE,
+        name = "",
+        guide = "none"
+    ) +
+    scale_x_continuous(
+        name = "Log (days since release)",
+        expand = expand_scale(mult = c(0, 0)),
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        expand = expand_scale(mult = c(0, 0)),
+        limits = c(0, 25000)
+    ) +
+    labs(
+        title = "**Capitalisn't: Cumulative daily downloads**",
+        subtitle = "20 most recent episodes",
+        tag = "Figure 4A"
+    ) +
+    theme_stigler()
+recent_20_episodes_linear_cumul_perf
+ggsave(
+    plot = recent_20_episodes_linear_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/recent_20_episodes_linear_cumul_perf.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
+
+alltime_episodes_linear_cumul_perf <- ggplot(
+    daily_downloads_df %>%
+        mutate(log_days_since_release = log(days_since_release))
+) +
+    geom_line(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            group = episode_id,
+            color = as.numeric(release_date)
+        ),
+        linewidth = 1.5
+    ) +
+    scale_color_stigler(
+        "blues_2",
+        reverse = TRUE,
+        discrete = FALSE,
+        name = "",
+        guide = "none"
+    ) +
+    scale_x_continuous(
+        name = "Log (days since release)",
+        expand = expand_scale(mult = c(0, 0)),
+    ) +
+    scale_y_continuous(
+        labels = scales::comma,
+        position = "right",
+        expand = expand_scale(mult = c(0, 0)),
+        limits = c(0, 25000)
+    ) +
+    labs(
+        title = "**Capitalisn't: Cumulative daily downloads**",
+        subtitle = "All episodes",
+        tag = "Figure 4B"
+    ) +
+    theme_stigler()
+recent_20_episodes_linear_cumul_perf
+ggsave(
+    plot = alltime_episodes_linear_cumul_perf,
+    filename = "wmataCampaignAnalysis/figures/alltime_episodes_linear_cumul_perf.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
+
 
 ##### t={1,14,28,42} CUMULATIVE DOWNLOADS GGPLOTS #####
 
@@ -1780,9 +1844,13 @@ ggsave(
 
 
 #### SIGNIFICANCE HEATMAP PLOTS #####
-
 ###### Daily-kink specifications ######
-ggplot(
+
+stigler_pal_blues_disc <- stigler_pal(palette = "blues", reverse = FALSE, 3)
+stigler_pal_reds_disc <- stigler_pal(palette = "reds", reverse = FALSE, 3)
+
+
+daily_kink_heatmap <- ggplot(
     daily_kink_results_df %>%
         filter(
             episode_id %in% recent_n_episode_ids(
@@ -1791,13 +1859,26 @@ ggplot(
             )
         ) %>%
         mutate(
-            stars = as.factor(
-                case_when(
-                    p.value < 0.01 ~ "***",
-                    (p.value >= 0.01) & (p.value < 0.05) ~ "**",
-                    (p.value >= 0.05) & (p.value < 0.10) ~ "*",
-                    TRUE ~ ""
-                )
+            sig_level = case_when(
+                p.value < 0.01 ~ "&#42;&#42;&#42;", #*** 
+                (p.value >= 0.01) & (p.value < 0.05) ~ "&#42;&#42;", # **
+                (p.value >= 0.05) & (p.value < 0.10) ~ "&#42;", # *
+                TRUE ~ ""
+            ),
+            stars = as.ordered(sig_level),
+            term = case_when(
+                term == "(Intercept)" ~ "Intercept",
+                term == "log_days_since_release" ~ "Log(Days since release)",
+                term == "in_wmata_general_ad" ~ "Ad period",
+                term == "log_days_since_release:in_wmata_general_ad" ~ "Interaction"
+            ),
+            coef_positive = as.factor(ifelse(
+                estimate > 0,
+                "+", "-"
+            )),
+            sig_and_sign = interaction(
+                stars, coef_positive,
+                sep = ":"
             )
         ) %>%
         arrange(release_date)
@@ -1806,8 +1887,9 @@ ggplot(
         aes(
             x = as.factor(release_date),
             y = term,
-            fill = stars
-        )
+            fill = sig_and_sign
+        ),
+        color = "grey"
     ) +
     geom_segment(
         aes(
@@ -1819,14 +1901,38 @@ ggplot(
         linewidth = 1,
         color = "black"
     ) +
-    scale_fill_stigler(
-        palette = "reds",
-        discrete = TRUE
+    scale_y_discrete(
+        name = "Regression term"
     ) +
-    theme_minimal()
+    scale_fill_manual(
+        name = "Statatistical significance and coefficient sign",
+        values = c(stigler_pal_blues_disc(2), stigler_pal_reds_disc(2))
+    ) + 
+    labs(
+        title = "Coefficient Statistical Significance Heatamp",
+        subtitle = "Episode-level slope-kink specification, by release date",
+        tag = "Figure 6",
+        caption = "Signifiance levels: &#42;&#42;&#42; p < 0.001; &#42;&#42; p < 0.05; &#42; p < 0.1"
+    ) +
+    coord_flip() +
+    theme_stigler() +
+    theme(
+        plot.tag.position = c(0.075,1)
+    )
+
+daily_kink_heatmap
+
+ggsave(
+    plot = daily_kink_heatmap,
+    filename = "wmataCampaignAnalysis/figures/daily_kink_sig_heatmap.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
 
 ###### DMV-NYS Diff-in-Diff specifications ######
-ggplot(
+dmv_nys_did_heatmap <- ggplot(
     dmv_nys_episode_level_did_results_df %>%
         filter(
             episode_id %in% recent_n_episode_ids(
@@ -1853,18 +1959,22 @@ ggplot(
             ),
             coef_positive = as.factor(ifelse(
                 estimate > 0,
-                1, 0
-            ))
-        )
+                "+", "-"
+            )),
+            sig_and_sign = interaction(
+                stars, coef_positive,
+                sep = ":"
+            )
+        ) %>%
+        arrange(release_date)
 ) +
     geom_tile(
         aes(
             x = as.factor(release_date),
             y = term,
-            fill = sig_level,
-            color = coef_positive
+            fill = sig_and_sign
         ),
-        linewidth = 0.5
+        color = "grey",
     ) +
     geom_segment(
         aes(
@@ -1876,28 +1986,37 @@ ggplot(
         linewidth = 1,
         color = "black"
     ) +
-    scale_color_manual(
-        breaks = c(0, 1),
-        values = c("#ffffff", "#000000"),
-        labels = c("Neg", "Pos"),
-        name = "Coefficient sign",
+    scale_y_discrete(
+        name = "Regression term"
     ) +
-    scale_fill_stigler(
-        palette = "reds",
-        discrete = TRUE
+    scale_fill_manual(
+        name = "Statistical significance and coefficient sign",
+        values = c(stigler_pal_blues_disc(4), stigler_pal_reds_disc(4))
+    ) +
+    labs(
+        title = "Coefficient Statistical Significance Heatmap",
+        subtitle = "asdfasdfsafd",
+        tag = "INSERT FIGURE NUMBER HERE",
+        caption = "Signifiance levels: &#42;&#42;&#42; p < 0.001; &#42;&#42; p < 0.05; &#42; p < 0.1"
     ) +
     coord_flip() +
     labs(
         title = "Coefficient Statistical Significance Heatmap",
         subtitle = "DMV vs NY State DiD estimates at the episode-level"
     ) +
-    theme_stigler()
+    theme_stigler() +
+    theme(
+        plot.tag.position = c(0.075,1)
+    )
 
-ggsave(
-    plot = last_plot(),
-    filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/episode_level_sig_heatmap.jpg",
-    dpi = 300
-)
+dmv_nys_did_heatmap
+
+
+# ggsave(
+#     plot = last_plot(),
+#     filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/episode_level_sig_heatmap.jpg",
+#     dpi = 300
+# )
 
 ggplot(
     fe_log_time_to_treat_dmv_nys %>%
@@ -1985,6 +2104,60 @@ ggsave(
     dpi = 300
 )
 
+
+### EXAMPLE DAILY DOWNLOADS KINK ###
+tswift_daily_kink_plot <-ggplot(
+    daily_slope_kink_df %>%
+        filter(
+            episode_id == "e25c049f-51d3-42f7-9cb6-21e97cf4aa00"
+        )
+) +
+    geom_line(
+        data = tswift_fitted_df,
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads_pred,
+            color = as.factor(in_wmata_general_ad),
+            group = in_wmata_general_ad
+        ),
+        linewidth = 1.2
+    ) + 
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = as.factor(in_wmata_general_ad)
+        ),
+        alpha = 0.5
+    ) +
+    scale_color_stigler(
+        name = "Treated by advertisting",
+        breaks = c(0,1),
+        labels = c("Treated", "Untreated")
+    ) +
+    scale_x_continuous(
+        name = "Log(days since release)"
+    ) +
+    scale_y_continuous(
+        position = "right",
+        labels = scales::comma
+    ) + 
+    labs(
+        title = "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow (2023-12-08)",
+        subtitle = "Episode-level slope-kink specification real and fitted values",
+        tag = "Figure 5"
+    ) +
+    theme_stigler()
+
+tswift_daily_kink_plot
+ggsave(
+    plot = tswift_daily_kink_plot,
+    filename = "wmataCampaignAnalysis/figures/tswift_daily_kink_plot.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
 
 #### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
 

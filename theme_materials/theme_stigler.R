@@ -51,7 +51,7 @@ theme_stigler <- function() {
                 debug = FALSE
             ),
             plot.caption.position = "panel",
-            plot.caption = element_text(
+            plot.caption = element_markdown(
                 size = 12,
                 hjust = 0,
                 vjust = 0,
@@ -213,11 +213,11 @@ scale_fill_stigler <- function(
     discrete = TRUE,
     ...
 ) {
-    pal <- stigler_pal(palette = palette, reverse = reverse,...)
+    pal <- stigler_pal(palette = palette, reverse = reverse, ...)
     if (discrete) {
         discrete_scale("fill", paste0("stigler_", palette), palette = pal, ...)
     } else {
-        scale_fill_gradient(colors = pal(256), ...)
+        scale_fill_gradientn(colors = pal(256), ...)
     }
 
 }
