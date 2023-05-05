@@ -201,7 +201,7 @@ In \eqref{dmv-did}, $\text{DMV}_{ij}$ is an indicator variable that is coded as 
 
 Figure \ref{fig:yannelis-did-RoUS} depicts the cumulative downloads performance of ``The Student Debt Dilemma with Constantine Yannelis,'' (published in September 2022), in the DMV area and in the rest of the United States. Note that in this setting only observations in the DMV area are every potentially treated because we restrict the definition of treatment to those places where the advertisement could plausibly have been seen. Importantly for the DID regression design, this episode clearly does not satisfy the ``parallel trends assumption,'' that is required to identify the causal effect of the advertising treatment. That is, the ``Rest of the United States'' is a poor control group for the DMV.\footnote{I repeat this exercise for the 50 most recent episodes and find that this is generally true --- the parallel trends assumption is rarely if every fully satisfied.} I conjecture that this is because long-run episode performance (long-run being the appropriate framing in this case because I am interested in cases where there is a clearly established performance trajectory for an episode) is a function of word-of-mouth dynamics in a very long-tail of ``small'' locations. That is, the DMV area is, to a greater or lesser extent, saturated to an extent that word-of-mouth dynamics do not take hold in an appreciable way.\footnote{Even disregarding the requirement for the parallel trends assumption to be satisfied, I find that the coefficient on the interaction term of interest ($\beta_5$) exhibits no meaningful degrees of statistical significance. Results of the visual parallel trends assumption test and regression results can be made available on request.}\\
 
-In an effort to remedy this, I restrict the definition of the ``control'' group to only locations in New York state. Comparing a metropolitan area to a large state might still exhibit the same problem as outlined above but it is likely to be considerably attenuated because there are fewer such ``small'' places that can incidentally discover the podcast/epsiode for the first time (well after release). Consider, for example, Figure \ref{fig:yannelis-did-nys}. Though not yet perfectly, this does appear to better satisfy the parallel trends assumption and, encouragingly, a visual inspection suggests that advertising may have had a positive effect on podcast performance.\\
+In an effort to remedy this, I restrict the definition of the ``control'' group to only locations in New York state. Comparing a metropolitan area to a large state might still exhibit the same problem as outlined above but it is likely to be considerably attenuated because there are fewer such ``small'' places that can incidentally discover the podcast/epsiode for the first time (well after release). Additionally, in a subsequent set of regressions, I restrict the time sample under consideration to the 45 days prior-to and following the beginning of the advertising campaign. I do this to, as much as possible, omit the earliest period of the episode's performance, when daily downloads are relatively volatile (are by themselves the least predictive of long-run performance). Consider, for example, Figure \ref{fig:yannelis-did-nys}. Though not yet perfectly, the redefinition of the control group appears to better satisfy the parallel trends assumption and, encouragingly, a visual inspection suggests that advertising may have had a positive effect on podcast performance.\\
 
 \begin{figure}[!htb]
   \centering
@@ -211,6 +211,10 @@ In an effort to remedy this, I restrict the definition of the ``control'' group 
 \end{figure}
 
 Closer inspection of the regression estimates, however, suggest that this is not the case. 
+
+\begin{landscape}
+  \input{tables/select-dmv-nys-did.tex}
+\end{landscape}
 
 
 \end{document}

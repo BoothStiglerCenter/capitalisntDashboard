@@ -1358,7 +1358,158 @@ iplot(
 )
 
 ##### REGRESSION TABLES #####
+##### Episode-level Diff-in-Diff table results: ##### 
+# Helper function
+episode_spec_did_call_gen <- function(episode, temporal_restrict = Inf) {
+    did_df <- dmv_nys_did_df %>%
+        filter(
+            episode_id == episode,
+            rel_days_to_ad_start < temporal_restrict,
+            rel_days_to_ad_start > -temporal_restrict
+        )
 
+    model <- lm(
+        cumulative_downloads ~ log_days_since_release +
+            relevant_msa +
+            in_wmata_general_ad +
+            log_days_since_release:relevant_msa +
+            log_days_since_release:relevant_msa:in_wmata_general_ad,
+            data = did_df
+    )
+    return(model)
+}
+
+dmv_nys_did_8_models_list <- list(
+    "Meritoracy Rerun" = episode_spec_did_call_gen("dc20c027-98cb-42ef-8f47-b5e9861e3421"),
+    "King 2" = episode_spec_did_call_gen("b4ec4f5b-94e8-4c8e-9b35-ed1f8cc7990c"),
+    "Doctorow" = episode_spec_did_call_gen("e25c049f-51d3-42f7-9cb6-21e97cf4aa00"),
+    "Ramaswamy Rerun" = episode_spec_did_call_gen("980feca7-8d1e-444c-bfed-5c4ffb098f29"),
+    "Musk" = episode_spec_did_call_gen("827803a2-df4b-4e0e-a628-3ad90257e97d"),
+    "Cochrane" = episode_spec_did_call_gen("eaa475f3-bcec-4b76-ae16-16cb5ac218bf"),
+    "Piketty" = episode_spec_did_call_gen("33bd7c91-d789-493f-adff-729394004dd7"),
+    "Antitrust-Isn't" = episode_spec_did_call_gen("c42eab80-0e69-4dda-a454-c9037ef3a803")
+)
+
+# Full sample-only table
+dmv_nys_did_8_full_time_sample <- modelsummary(
+    dmv_nys_did_8_models_list,
+    stars = TRUE,
+    vcov = "robust",
+    coef_map = c(
+        "log_days_since_release" = "$\\log$ DaysSinceRelease",
+        "relevant_msa" = "DMV",
+        "in_wmata_general_ad" = "Advertisement",
+        "log_days_since_release:relevant_msa" = "DMV Pre-trends",
+        "log_days_since_release:relevant_msa:in_wmata_general_ad" = "Interaction",
+        "(Intercept)" = "Intercept"
+    ),
+    gof_omit = "AIC|BIC|F|RMSE|Lik|Std.Errors",
+    title = "Episode-level Difference-in-Difference Estimates, Selected Episodes",
+    notes = "Standard errors are presented in parentheses are are heteroskedastic-robust errors",
+    escape = FALSE,
+    booktabs = TRUE,
+    output = "latex"
+)  %>%
+    column_spec(
+        2:10, width = "0.75in"
+    )
+
+
+dmv_nys_did_8_models_list_t45 <- list(
+    "Meritoracy Rerun" = episode_spec_did_call_gen(
+        "dc20c027-98cb-42ef-8f47-b5e9861e3421",
+        temporal_restrict = 45
+    ),
+    "King 2" = episode_spec_did_call_gen(
+        "b4ec4f5b-94e8-4c8e-9b35-ed1f8cc7990c",
+        temporal_restrict = 45
+    ),
+    "Doctorow" = episode_spec_did_call_gen(
+        "e25c049f-51d3-42f7-9cb6-21e97cf4aa00",
+        temporal_restrict = 45
+    ),
+    "Ramaswamy Rerun" = episode_spec_did_call_gen(
+        "980feca7-8d1e-444c-bfed-5c4ffb098f29",
+        temporal_restrict = 45
+    ),
+    "Musk" = episode_spec_did_call_gen(
+        "827803a2-df4b-4e0e-a628-3ad90257e97d",
+        temporal_restrict = 45
+    ),
+    "Cochrane" = episode_spec_did_call_gen(
+        "eaa475f3-bcec-4b76-ae16-16cb5ac218bf",
+        temporal_restrict = 45
+    ),
+    "Piketty" = episode_spec_did_call_gen(
+        "33bd7c91-d789-493f-adff-729394004dd7",
+        temporal_restrict = 45
+    ),
+    "Antitrust-Isn't" = episode_spec_did_call_gen(
+        "c42eab80-0e69-4dda-a454-c9037ef3a803",
+        temporal_restrict = 45
+    )
+)
+
+# T+/-45 days sample-only table
+dmv_nys_did_8_t45 <- modelsummary(
+    dmv_nys_did_8_models_lis_t45,
+    stars = TRUE,
+    vcov = "robust",
+    coef_map = c(
+        "log_days_since_release" = "$\\log$ DaysSinceRelease",
+        "relevant_msa" = "DMV",
+        "in_wmata_general_ad" = "Advertisement",
+        "log_days_since_release:relevant_msa" = "DMV Pre-trends",
+        "log_days_since_release:relevant_msa:in_wmata_general_ad" = "Interaction",
+        "(Intercept)" = "Intercept"
+    ),
+    gof_omit = "AIC|BIC|F|RMSE|Lik|Std.Errors",
+    title = "Episode-level Difference-in-Difference Estimates, Selected Episodes",
+    notes = "Standard errors are presented in parentheses are are heteroskedastic-robust errors",
+    escape = FALSE,
+    booktabs = TRUE,
+    output = "latex"
+) %>%
+    column_spec(
+        2:10, width = "0.75in"
+    )
+
+panels <- list(
+    "Full time sample:" = dmv_nys_did_8_models_list,
+    "45-day window:" = dmv_nys_did_8_models_list_t45
+)
+
+# Combined (full-sample and t+/-45 panel-combi table)
+dmv_nys_did_8_multi_panel <- modelsummary(
+    panels,
+    shape = "rbind",
+    stars = TRUE,
+    vcov = "robust",
+    coef_map = c(
+        "log_days_since_release" = "$\\log$ DaysSinceRelease",
+        "relevant_msa" = "DMV",
+        "in_wmata_general_ad" = "Advertisement",
+        "log_days_since_release:relevant_msa" = "DMV Pre-trends",
+        "log_days_since_release:relevant_msa:in_wmata_general_ad" = "Interaction",
+        "(Intercept)" = "Intercept"
+    ),
+    gof_omit = "AIC|BIC|F|RMSE|Lik|Std.Errors|R2",
+    title = "Episode-level Difference-in-Difference Estimates, Selected Episodes",
+    notes = "Standard errors are presented in parentheses are are heteroskedastic-robust errors",
+    escape = FALSE,
+    booktabs = TRUE,
+
+    output = "latex"
+) %>%
+    column_spec(
+        2:9, width = "0.76in"
+    )
+
+save_kable(
+    dmv_nys_did_8_multi_panel,
+    float = FALSE,
+    file = "wmataCampaignAnalysis/tables/select-dmv-nys-did.tex"
+)
 
 ### PLOTS ###
 
@@ -1849,6 +2000,7 @@ ggsave(
 
 
 #### SIGNIFICANCE HEATMAP PLOTS #####
+
 ###### Daily-kink specifications ######
 
 stigler_pal_blues_disc <- stigler_pal(palette = "blues", reverse = FALSE, 3)
@@ -1936,6 +2088,10 @@ ggsave(
 )
 
 ###### DMV-NYS Diff-in-Diff specifications ######
+
+stigler_pal_blues_disc <- stigler_pal(palette = "blues", reverse = FALSE, 4)
+stigler_pal_reds_disc <- stigler_pal(palette = "reds", reverse = FALSE, 4)
+
 dmv_nys_did_heatmap <- ggplot(
     dmv_nys_episode_level_did_results_df %>%
         filter(
@@ -2000,7 +2156,7 @@ dmv_nys_did_heatmap <- ggplot(
     labs(
         title = "Coefficient Statistical Significance Heatmap",
         subtitle = "asdfasdfsafd",
-        tag = "INSERT FIGURE NUMBER HERE",
+        tag = "Figure 9",
         caption = "Signifiance levels: &#42;&#42;&#42; p < 0.001; &#42;&#42; p < 0.05; &#42; p < 0.1"
     ) +
     coord_flip() +
