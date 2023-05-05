@@ -1849,7 +1849,6 @@ ggsave(
 stigler_pal_blues_disc <- stigler_pal(palette = "blues", reverse = FALSE, 3)
 stigler_pal_reds_disc <- stigler_pal(palette = "reds", reverse = FALSE, 3)
 
-
 daily_kink_heatmap <- ggplot(
     daily_kink_results_df %>%
         filter(
@@ -2010,13 +2009,14 @@ dmv_nys_did_heatmap <- ggplot(
     )
 
 dmv_nys_did_heatmap
-
-
-# ggsave(
-#     plot = last_plot(),
-#     filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/episode_level_sig_heatmap.jpg",
-#     dpi = 300
-# )
+ggsave(
+    plot = dmv_nys_did_heatmap,
+    filename = "wmataCampaignAnalysis/figures/nys_dmv_DiD/episode_level_sig_heatmap.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
 
 ggplot(
     fe_log_time_to_treat_dmv_nys %>%
@@ -2105,13 +2105,34 @@ ggsave(
 )
 
 
-### EXAMPLE DAILY DOWNLOADS KINK ###
-tswift_daily_kink_plot <-ggplot(
+#### TSWIFT EXAMPLE DAILY DOWNLOADS KINK ####
+
+tswift_ad_start_log_days_since_release <- daily_slope_kink_df %>%
+    filter(
+        episode_id == "e25c049f-51d3-42f7-9cb6-21e97cf4aa00"
+    ) %>%
+    filter(in_wmata_general_ad == 1) %>%
+    select(log_days_since_release) %>%
+    arrange(log_days_since_release) %>%
+    head(1) %>%
+    pull() 
+
+tswift_daily_kink_plot <- ggplot(
     daily_slope_kink_df %>%
         filter(
             episode_id == "e25c049f-51d3-42f7-9cb6-21e97cf4aa00"
         )
 ) +
+    geom_segment(
+        aes(
+             x = tswift_ad_start_log_days_since_release,
+             xend = tswift_ad_start_log_days_since_release,
+             y = 0,
+             yend = Inf
+        ),
+        linewidth = 1,
+        color = "black"
+    ) +
     geom_line(
         data = tswift_fitted_df,
         aes(
@@ -2140,8 +2161,9 @@ tswift_daily_kink_plot <-ggplot(
     ) +
     scale_y_continuous(
         position = "right",
-        labels = scales::comma
-    ) + 
+        labels = scales::comma,
+        expand = expansion(mult = 0)
+    ) +
     labs(
         title = "Taylor Swift, Ticketmaster, and Chokepoint Capitalism with Cory Doctorow (2023-12-08)",
         subtitle = "Episode-level slope-kink specification real and fitted values",
@@ -2158,6 +2180,100 @@ ggsave(
     units = "in",
     dpi = 300
 )
+
+yannelis_did_model <- lm(
+    cumulative_downloads ~ log_days_since_release +
+        relevant_msa +
+        in_wmata_general_ad +
+        log_days_since_release:relevant_msa +
+        log_days_since_release:relevant_msa:in_wmata_general_ad,
+        data = dmv_msa_did_df %>%
+            filter(
+                episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+            ) %>%
+            mutate(
+                in_wmata_general_ad = ifelse(
+                    relevant_msa == 0,
+                    0, in_wmata_general_ad
+                )
+            )
+)
+
+yannelis_did_fitted_df <- data.frame(
+    cumulative_downloads_pred = predict(yannelis_did_model, dmv_msa_did_df %>%
+            filter(
+                episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+            )
+        ),
+    log_days_since_release = dmv_msa_did_df %>%
+        filter(
+            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+        ) %>%
+        select(log_days_since_release) %>%
+        pull(),
+    relevant_msa = dmv_msa_did_df %>%
+        filter(
+            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+        ) %>%
+        select(relevant_msa) %>%
+        pull(),
+    in_wmata_general_ad = dmv_msa_did_df %>%
+        filter(
+            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+        ) %>%
+        select(in_wmata_general_ad) %>%
+        pull()
+) %>% view()
+
+# yannelis_did_plot <- 
+ggplot(
+    dmv_msa_did_df %>%
+        filter(
+            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+        )
+) +
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = as.factor(in_wmata_general_ad),
+            shape = as.factor(relevant_msa)
+        ),
+        size = 2,
+        alpha = 0.5
+    ) +
+    geom_line(
+        data = yannelis_did_fitted_df,
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads_pred,
+            group = interaction(relevant_msa, in_wmata_general_ad)
+        )
+    ) +
+    scale_x_continuous(
+        name = "Log(days since release)"
+    ) +
+    scale_y_continuous(
+        position = "right",
+        labels = scales::comma
+    ) +
+    scale_shape_discrete(
+        breaks = c(0, 1),
+        labels = c("Rest of the US", "DMV"),
+        name = "Location"
+    ) +
+    scale_color_stigler(
+        breaks = c(0, 1),
+        labels = c("Untreated", "Treated"),
+        name = "Treated by advertising"
+    ) +
+    labs(
+        title = "Yannelis",
+        subtitle = "TEST",
+        tag = " "
+    ) +
+    theme_stigler()
+
 
 #### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
 
