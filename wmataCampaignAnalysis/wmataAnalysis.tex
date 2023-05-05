@@ -7,7 +7,6 @@
 \usepackage[]{hyperref}
 \usepackage{apacite}
 \usepackage{setspace}
-% \usepackage[labelformat=empty]{caption}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{etoolbox}
@@ -187,9 +186,31 @@ I use a difference-in-differences (DID) estimation strategy to isolate the hypot
 \begin{align}
   \label{dmv-did}
   \text{CumulativeDownloads}_{ij} &= \alpha + \beta_1 \log \text{DaysSinceRelease}_{ij} + \beta_2 \text{Adv}_{ij} + \beta_3 \text{DMV}_i \\ \nonumber
-    &+ \beta_4(\log \text{DaysSinceRelease} \times \text{Adv} \times \text{DMV})_{ij} + X_i + \varepsilon_{ij} 
+    &+ \beta_4(\log \text{DaysSinceRelease} \times \text{DMV})_{ij} + \\ \nonumber
+    &+ \beta_5(\log \text{DaysSinceRelease} \times \text{DMV} \times \text{Adv})_{ij} + X_i + \varepsilon_{ij} 
 \end{align}
 
-In \eqref{dmv-did}, $\text{DMV}_{ij}$ is an indicator variable that is coded as 1 if the location $j$ is in the treated DMV group. Additionally, $\beta_4$ is the coefficient of interest and is expected to be positive.\footnote{In contrast to many DID strategies, there are no ``time'' subscripts, $t$ on regressors because we control for time as its own regressor.} Similar to Figure \ref{fig:tswift_fitted}, Figure \ref{} provides an illustrative example of the intuition undergirding this estimation strategy.
+In \eqref{dmv-did}, $\text{DMV}_{ij}$ is an indicator variable that is coded as 1 if the location $j$ is in the treated DMV group. Additionally, $\beta_5$ is the coefficient of interest and is expected to be positive.\footnote{In contrast to many DID strategies, there are no ``time'' subscripts, $t$ on regressors because we control for time as its own regressor. Additionally, I do not consider the possibility that places that are defined as never-treated (outside the DMV) could see an improvement in podcast performance due to the advertising. For the purposes of this investigation, I am not particularly concerned about spillover effects jeopardizing the identification startegy.} Similar to Figure \ref{fig:tswift_fitted}, Figure \ref{fig:yannelis-did-RoUS} provides an illustrative example of the intuition undergirding this estimation strategy.\\
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/yannelis_did_whole_country_plot.png}
+  \caption{}
+  \label{fig:yannelis-did-RoUS}
+\end{figure}
+
+Figure \ref{fig:yannelis-did-RoUS} depicts the cumulative downloads performance of ``The Student Debt Dilemma with Constantine Yannelis,'' (published in September 2022), in the DMV area and in the rest of the United States. Note that in this setting only observations in the DMV area are every potentially treated because we restrict the definition of treatment to those places where the advertisement could plausibly have been seen. Importantly for the DID regression design, this episode clearly does not satisfy the ``parallel trends assumption,'' that is required to identify the causal effect of the advertising treatment. That is, the ``Rest of the United States'' is a poor control group for the DMV.\footnote{I repeat this exercise for the 50 most recent episodes and find that this is generally true --- the parallel trends assumption is rarely if every fully satisfied.} I conjecture that this is because long-run episode performance (long-run being the appropriate framing in this case because I am interested in cases where there is a clearly established performance trajectory for an episode) is a function of word-of-mouth dynamics in a very long-tail of ``small'' locations. That is, the DMV area is, to a greater or lesser extent, saturated to an extent that word-of-mouth dynamics do not take hold in an appreciable way.\footnote{Even disregarding the requirement for the parallel trends assumption to be satisfied, I find that the coefficient on the interaction term of interest ($\beta_5$) exhibits no meaningful degrees of statistical significance. Results of the visual parallel trends assumption test and regression results can be made available on request.}\\
+
+In an effort to remedy this, I restrict the definition of the ``control'' group to only locations in New York state. Comparing a metropolitan area to a large state might still exhibit the same problem as outlined above but it is likely to be considerably attenuated because there are fewer such ``small'' places that can incidentally discover the podcast/epsiode for the first time (well after release). Consider, for example, Figure \ref{fig:yannelis-did-nys}. Though not yet perfectly, this does appear to better satisfy the parallel trends assumption and, encouragingly, a visual inspection suggests that advertising may have had a positive effect on podcast performance.\\
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/yannelis_did_nys_plot.png}
+  \caption{}
+  \label{fig:yannelis-did-nys}
+\end{figure}
+
+Closer inspection of the regression estimates, however, suggest that this is not the case. 
+
 
 \end{document}

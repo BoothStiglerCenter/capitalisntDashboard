@@ -1010,6 +1010,11 @@ dmv_msa_did_df <- episode_locations_msa_downloads_df %>%
         is_a_release_date = ifelse(
             is.na(is_a_release_date),
             0, is_a_release_date
+        ),
+        #### Need to properly identify the never-treated
+        in_wmata_general_ad = ifelse(
+            relevant_msa == 0,
+            0, 1
         )
     )
 
@@ -1032,6 +1037,7 @@ for (episode in dmv_msa_did_df$episode_id %>% unique()) {
         cumulative_downloads ~ log_days_since_release +
             relevant_msa +
             in_wmata_general_ad +
+            log_days_since_release:relevant_msa +
             log_days_since_release:relevant_msa:in_wmata_general_ad,
             data = msa_did_df
     )
@@ -1055,8 +1061,7 @@ dmv_msa_episode_level_did_results_df <- dmv_msa_episode_level_did_results_df %>%
         release_dates_df,
         by = "episode_id",
         multiple = "all"
-    ) %>%
-    view()
+    )
 
 fe_log_time_to_treat_did <- feols(
     cumulative_downloads ~ log_days_since_release +
@@ -2142,7 +2147,7 @@ tswift_daily_kink_plot <- ggplot(
             group = in_wmata_general_ad
         ),
         linewidth = 1.2
-    ) + 
+    ) +
     geom_point(
         aes(
             x = log_days_since_release,
@@ -2181,57 +2186,43 @@ ggsave(
     dpi = 300
 )
 
+#### YANNELIS EXAMPLE DIFF=IN-DIFFs ####
+
+####### DMV vs Rest of USA #######
+
+yannelis_did_df <- dmv_msa_did_df %>%
+    filter(
+        episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+    ) %>%
+    mutate(
+        in_wmata_general_ad = ifelse(
+            relevant_msa == 0,
+            0, in_wmata_general_ad
+        )
+    )
+
 yannelis_did_model <- lm(
     cumulative_downloads ~ log_days_since_release +
         relevant_msa +
         in_wmata_general_ad +
         log_days_since_release:relevant_msa +
         log_days_since_release:relevant_msa:in_wmata_general_ad,
-        data = dmv_msa_did_df %>%
-            filter(
-                episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-            ) %>%
-            mutate(
-                in_wmata_general_ad = ifelse(
-                    relevant_msa == 0,
-                    0, in_wmata_general_ad
-                )
-            )
+        data = yannelis_did_df
 )
 
-yannelis_did_fitted_df <- data.frame(
-    cumulative_downloads_pred = predict(yannelis_did_model, dmv_msa_did_df %>%
-            filter(
-                episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-            )
-        ),
-    log_days_since_release = dmv_msa_did_df %>%
-        filter(
-            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-        ) %>%
-        select(log_days_since_release) %>%
-        pull(),
-    relevant_msa = dmv_msa_did_df %>%
-        filter(
-            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-        ) %>%
-        select(relevant_msa) %>%
-        pull(),
-    in_wmata_general_ad = dmv_msa_did_df %>%
-        filter(
-            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-        ) %>%
-        select(in_wmata_general_ad) %>%
-        pull()
-) %>% view()
+yannelis_did_df$cumulative_downloads_pred <- predict(
+    yannelis_did_model,
+    yannelis_did_df
+)
 
-# yannelis_did_plot <- 
-ggplot(
-    dmv_msa_did_df %>%
-        filter(
-            episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
-        )
-) +
+yannelis_ad_start_log_days_since_release <- yannelis_did_df %>%
+    filter(in_wmata_general_ad == 1) %>%
+    arrange(log_days_since_release) %>%
+    select(log_days_since_release) %>%
+    head(1) %>%
+    pull()
+
+yannelis_did_plot <- ggplot(yannelis_did_df) +
     geom_point(
         aes(
             x = log_days_since_release,
@@ -2243,19 +2234,30 @@ ggplot(
         alpha = 0.5
     ) +
     geom_line(
-        data = yannelis_did_fitted_df,
         aes(
             x = log_days_since_release,
             y = cumulative_downloads_pred,
+            color = as.factor(in_wmata_general_ad),
             group = interaction(relevant_msa, in_wmata_general_ad)
-        )
+        ),
+        linewidth = 1.5
+    ) +
+    geom_segment(
+        aes(
+            x = yannelis_ad_start_log_days_since_release,
+            xend = yannelis_ad_start_log_days_since_release,
+            y = 0,
+            yend = Inf
+        ),
+        color = "black"
     ) +
     scale_x_continuous(
         name = "Log(days since release)"
     ) +
     scale_y_continuous(
         position = "right",
-        labels = scales::comma
+        labels = scales::comma,
+        expand = expansion(mult = 0)
     ) +
     scale_shape_discrete(
         breaks = c(0, 1),
@@ -2268,11 +2270,118 @@ ggplot(
         name = "Treated by advertising"
     ) +
     labs(
-        title = "Yannelis",
-        subtitle = "TEST",
-        tag = " "
+        title = "The Student Debt Dilemma With Constantine Yannelis (2022-09-01)",
+        subtitle = "Episode-level difference-in-difference specification, real and fitted values | Rest of US control",
+        tag = "Figure 7"
     ) +
     theme_stigler()
+
+yannelis_did_plot
+ggsave(
+    plot = yannelis_did_plot,
+    filename = "wmataCampaignAnalysis/figures/yannelis_did_whole_country_plot.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
+
+####### DMV vs NY State #######
+yannelis_nys_did_df <- dmv_nys_did_df %>%
+    filter(
+        episode_id == "ea26a086-b538-4a95-81c8-fce31abc4708"
+    ) %>%
+    mutate(
+        in_wmata_general_ad = ifelse(
+            relevant_msa == 0,
+            0, in_wmata_general_ad
+        )
+    )
+
+yannelis_nys_did_model <- lm(
+    cumulative_downloads ~ log_days_since_release +
+        relevant_msa +
+        in_wmata_general_ad +
+        log_days_since_release:relevant_msa +
+        log_days_since_release:relevant_msa:in_wmata_general_ad,
+        data = yannelis_nys_did_df
+)
+
+yannelis_nys_did_df$cumulative_downloads_pred <- predict(
+    yannelis_nys_did_model,
+    yannelis_nys_did_df
+)
+
+yannelis_ad_start_log_days_since_release <- yannelis_did_df %>%
+    filter(in_wmata_general_ad == 1) %>%
+    arrange(log_days_since_release) %>%
+    select(log_days_since_release) %>%
+    head(1) %>%
+    pull()
+
+yannelis_nys_did_plot <- ggplot(yannelis_nys_did_df) +
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = as.factor(in_wmata_general_ad),
+            shape = as.factor(relevant_msa)
+        ),
+        size = 2,
+        alpha = 0.5
+    ) +
+    geom_line(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads_pred,
+            color = as.factor(in_wmata_general_ad),
+            group = interaction(relevant_msa, in_wmata_general_ad)
+        ),
+        linewidth = 1.5
+    ) +
+    geom_segment(
+        aes(
+            x = yannelis_ad_start_log_days_since_release,
+            xend = yannelis_ad_start_log_days_since_release,
+            y = 0,
+            yend = Inf
+        ),
+        color = "black"
+    ) +
+    scale_x_continuous(
+        name = "Log(days since release)"
+    ) +
+    scale_y_continuous(
+        position = "right",
+        labels = scales::comma,
+        expand = expansion(mult = 0)
+    ) +
+    scale_shape_discrete(
+        breaks = c(0, 1),
+        labels = c("NY State", "DMV"),
+        name = "Location"
+    ) +
+    scale_color_stigler(
+        breaks = c(0, 1),
+        labels = c("Untreated", "Treated"),
+        name = "Treated by advertising"
+    ) +
+    labs(
+        title = "The Student Debt Dilemma With Constantine Yannelis (2022-09-01)",
+        subtitle = "Episode-level difference-in-difference specification, real and fitted values | NY state control",
+        tag = "Figure 8"
+    ) +
+    theme_stigler()
+
+yannelis_nys_did_plot
+ggsave(
+    plot = yannelis_nys_did_plot,
+    filename = "wmataCampaignAnalysis/figures/yannelis_did_nys_plot.png",
+    width = 12.83,
+    height = 9.03,
+    units = "in",
+    dpi = 300
+)
 
 
 #### DMV EPISODE-LEVEL DIFF-IN-DIFF PLOTS ####
@@ -2314,26 +2423,23 @@ for (episode in dmv_msa_did_df$episode_id %>% unique()) {
 }
 
 ggplot(dmv_msa_did_df) +
-        geom_point(
-            aes(
-                x = log_days_since_release,
-                y = cumulative_downloads,
-                color = as.factor(relevant_msa),
-                fill = as.factor(in_wmata_general_ad),
-                group = relevant_msa
-            )
-        ) +
-        scale_fill_stigler(
-            palette = "blues_2",
-        ) +
-        scale_color_stigler(
-            palette = "reds_2",
-        ) +
-        labs(
-            title = title
-        ) +
-        theme_minimal() +
-        facet_wrap(~episode_id)
+    geom_point(
+        aes(
+            x = log_days_since_release,
+            y = cumulative_downloads,
+            color = as.factor(relevant_msa),
+            fill = as.factor(in_wmata_general_ad),
+            group = relevant_msa
+        )
+    ) +
+    scale_fill_stigler(
+        palette = "blues_2",
+    ) +
+    scale_color_stigler(
+        palette = "reds_2",
+    ) +
+    theme_minimal() +
+    facet_wrap(~title)
 
 #### END ####
 
