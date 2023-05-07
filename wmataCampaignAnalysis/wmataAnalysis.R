@@ -1358,7 +1358,9 @@ iplot(
 )
 
 ##### REGRESSION TABLES #####
-##### Episode-level Diff-in-Diff table results: ##### 
+
+###### Episode-level Diff-in-Diff table results: ######
+
 # Helper function
 episode_spec_did_call_gen <- function(episode, temporal_restrict = Inf) {
     did_df <- dmv_nys_did_df %>%
@@ -1367,7 +1369,6 @@ episode_spec_did_call_gen <- function(episode, temporal_restrict = Inf) {
             rel_days_to_ad_start < temporal_restrict,
             rel_days_to_ad_start > -temporal_restrict
         )
-
     model <- lm(
         cumulative_downloads ~ log_days_since_release +
             relevant_msa +
@@ -1378,6 +1379,19 @@ episode_spec_did_call_gen <- function(episode, temporal_restrict = Inf) {
     )
     return(model)
 }
+
+
+episode_spec_did_call_gen(
+    episode = "ea26a086-b538-4a95-81c8-fce31abc4708"
+) %>%
+    summary()
+episode_spec_did_call_gen(
+    episode = "ea26a086-b538-4a95-81c8-fce31abc4708",
+    temporal_restrict = 45
+) %>%
+    summary()
+
+
 
 dmv_nys_did_8_models_list <- list(
     "Meritoracy Rerun" = episode_spec_did_call_gen("dc20c027-98cb-42ef-8f47-b5e9861e3421"),
@@ -1413,7 +1427,6 @@ dmv_nys_did_8_full_time_sample <- modelsummary(
     column_spec(
         2:10, width = "0.75in"
     )
-
 
 dmv_nys_did_8_models_list_t45 <- list(
     "Meritoracy Rerun" = episode_spec_did_call_gen(
@@ -1476,7 +1489,7 @@ dmv_nys_did_8_t45 <- modelsummary(
 
 panels <- list(
     "Full time sample:" = dmv_nys_did_8_models_list,
-    "45-day window:" = dmv_nys_did_8_models_list_t45
+    "$\\pm$45-day window:" = dmv_nys_did_8_models_list_t45
 )
 
 # Combined (full-sample and t+/-45 panel-combi table)
@@ -1493,8 +1506,9 @@ dmv_nys_did_8_multi_panel <- modelsummary(
         "log_days_since_release:relevant_msa:in_wmata_general_ad" = "Interaction",
         "(Intercept)" = "Intercept"
     ),
+    fmt = fmt_decimal(digits = 2, pdigits = 3),
     gof_omit = "AIC|BIC|F|RMSE|Lik|Std.Errors|R2",
-    title = "Episode-level Difference-in-Difference Estimates, Selected Episodes",
+    title = "Episode-level Difference-in-Difference Estimates, Selected Episodes \\label{tab:dmv-nys-did-results}",
     notes = "Standard errors are presented in parentheses are are heteroskedastic-robust errors",
     escape = FALSE,
     booktabs = TRUE,
