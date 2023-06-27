@@ -1,0 +1,50 @@
+
+% Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
+% Date and time: Tue, Mar 29, 2022 - 10:12:40 PM
+\begin{table}[h] \centering 
+  \caption{Cumulative Downloads vs Log(days since release)} 
+  \label{} 
+\small 
+\begin{tabular}{@{\extracolsep{5pt}}lccccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & \multicolumn{5}{c}{\textit{Dependent variable:}} \\ 
+\cline{2-6} 
+\\[-1.8ex] & \multicolumn{5}{c}{Cumulative downloads} \\ 
+ & Baseline & Ad Campaigns & General Ads & Interaction & Interaction (fuzzy) \\ 
+\\[-1.8ex] & (1) & (2) & (3) & (4) & (5)\\ 
+\hline \\[-1.8ex] 
+ $\log{(\text{Days since release})}$ & 1,387.192$^{***}$ & 1,382.386$^{***}$ & 992.294$^{***}$ & 1,541.081$^{***}$ & 1,509.464$^{***}$ \\ 
+  & (18.777) & (18.568) & (20.625) & (20.536) & (20.619) \\ 
+  & & & & & \\ 
+ General Ad $^{\dag}$ &  & $-$1,248.214$^{***}$ & 884.710$^{***}$ &  &  \\ 
+  &  & (47.616) & (56.291) &  &  \\ 
+  & & & & & \\ 
+ Specific Ad $^{\dag}$ &  & 4,468.642$^{***}$ &  &  &  \\ 
+  &  & (404.967) &  &  &  \\ 
+  & & & & & \\ 
+ Btwn. General Ads $^{\dag}$ &  &  & 922.134$^{***}$ &  &  \\ 
+  &  &  & (64.268) &  &  \\ 
+  & & & & & \\ 
+ Post-General Ads $^{\dag}$ &  &  & 2,818.333$^{***}$ &  &  \\ 
+  &  &  & (45.784) &  &  \\ 
+  & & & & & \\ 
+ $\log{(\text{Days since release})} \times$ Post-General &  &  &  & 156.945$^{***}$ &  \\ 
+  &  &  &  & (8.156) &  \\ 
+  & & & & & \\ 
+ $\log{(\text{Days since release})} \times$ Any General &  &  &  &  & 199.518$^{***}$ \\ 
+  &  &  &  &  & (9.008) \\ 
+  & & & & & \\ 
+ Constant & 6,809.528$^{***}$ & 6,917.401$^{***}$ & 6,523.706$^{***}$ & 4,731.234$^{***}$ & 4,586.110$^{***}$ \\ 
+  & (94.364) & (94.249) & (86.233) & (82.708) & (76.690) \\ 
+  & & & & & \\ 
+\hline \\[-1.8ex] 
+Observations & 9,752 & 9,752 & 9,752 & 7,410 & 7,410 \\ 
+R$^{2}$ & 0.340 & 0.363 & 0.492 & 0.618 & 0.616 \\ 
+Adjusted R$^{2}$ & 0.340 & 0.363 & 0.492 & 0.618 & 0.616 \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{5}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+ & \multicolumn{5}{r}{$^{\dag}$ inidcates variable is dichotomous} \\ 
+\end{tabular} 
+\end{table} 
