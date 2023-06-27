@@ -1,0 +1,30 @@
+# IMAGE NAME: renv-restore
+FROM rocker/shiny
+
+ARG deployFrom=github
+
+RUN apt-get update
+RUN apt-get update
+
+RUN apt-get install -y \
+    bash \
+    libsodium-dev \
+    libssl-dev \ 
+    libxml2-dev
+RUN install2.r rsconnect rdrop2 cyphr sodium renv --error --skipinstalled
+
+
+RUN if [ "$deployFrom" == "local" ]; \
+    then COPY .Renviron /root/ ; \
+    fi
+
+RUN if [ "$deployFrom" == "github" ]; \
+    then RUN printenv ; \ 
+    fi
+
+WORKDIR /app
+COPY renv.lock /app
+
+RUN R -e "renv::consent(provided=TRUE)"
+RUN R -e "renv::restore()"
+RUN R -e "Sys.getenv()"

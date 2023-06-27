@@ -3,12 +3,14 @@ import requests
 import os
 import re
 import json
+import shutil
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
 ### READ IN API KEY
 api_keys_dict = json.load(open('env_keys.json'))
 simplecast_key = api_keys_dict.get('simplecast_key')
+dropbox_path = api_keys_dict.get('dropbox_path')
 auth_headers = {
     'authorization' : 'Bearer {}'.format(simplecast_key)
 }
@@ -189,12 +191,14 @@ def getAllEpisodes(current_datetime):
         new_df.drop(columns=['season', 'number', 'downloads'], inplace=True)
 
         df = pd.concat([old_df, new_df])
-        df = df.drop_duplicates(subset=['episode_download_href'])
+        df = df.drop_duplicates(subset=['episode_id'])
 
         if len(df) != expected_episodes:
             raise MismatchError(len(df), expected_episodes)
 
         df.to_csv('episodes_core-{}.csv'.format(current_datetime), index=False, encoding='utf-8')
+        
+        fileCleanup()
         return df
     
     else:
@@ -223,6 +227,7 @@ def getAllEpisodes(current_datetime):
             raise MismatchError(len(df), expected_episodes)
         df.to_csv(episodes_core_out_path, index=False, encoding='utf-8')
 
+        fileCleanup()
         return df
 
 def getEpDownloads(current_datetime):
@@ -240,18 +245,11 @@ def getEpDownloads(current_datetime):
         eps_df = getAllEpisodes(current_datetime)
     eps_df = eps_df[['episode_download_href', 'title', 'episode_id', 'season-ep']]
 
-    eps_downloads_df, downloads_last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_downloads')
 
-    # If we've never collected episode downloads before, we got a string back from identifyExistingCollection() and we nee to initialize a df before downloading everything.
-    if type(eps_downloads_df) == str:
-        print('Could not find a episodes_downloads .csv. Going to begin downloading all')
-        eps_downloads_df = pd.DataFrame()
-    
-    # If we have collected episode downloads before we only want to download new dates (we pass this this to the API)
-    if default_date < downloads_last_collected_datetime:
-        print('Found an old episodes_downloads .csv dated to {}. Only calling API for more recent download data.'.format(downloads_last_collected_datetime))
-        get_downloads_params['start_date'] = downloads_last_collected_datetime.isoformat()  
+    # Because Simplecast handles the time-series for us at this endpoint (with the '"interval" : "day"' option passed in the query params), we don't bother constructing it ourselves. Instead we just download everything, every day.
+    eps_downloads_df = pd.DataFrame()
 
+    print("Unique episodes to collect: {}".format(len(eps_df)))
     for i, obs in tqdm(eps_df.iterrows(), desc="Episode-level downloads: "):
 
         episode_downloads_url = obs.episode_download_href
@@ -264,17 +262,21 @@ def getEpDownloads(current_datetime):
 
         downloads = response.json().get('by_interval')
         downloads_df = pd.DataFrame.from_dict(downloads)
+
+
         downloads_df['episode_id'] = episode_id
         downloads_df['title'] = episode_title
 
         eps_downloads_df = pd.concat([eps_downloads_df, downloads_df], ignore_index=True)
 
-    eps_downloads_df = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
-    print('trying to get new eps downloads')
+    # print('BEFORE DROPPING DUPLICATES: {}'.format(len(eps_downloads_df)))
+    eps_downloads_df_unique = eps_downloads_df.drop_duplicates(subset=['episode_id', 'interval'])
+    # print('AFTER DROPPING DUPLICATES: {}'.format(len(eps_downloads_df_unique)))
 
-    eps_downloads_df.to_csv('episodes_downloads-{}.csv'.format(today), index=False, encoding='utf-8')
 
-    return eps_downloads_df
+    eps_downloads_df_unique.to_csv('episodes_downloads-{}.csv'.format(today), index=False, encoding='utf-8')
+
+    return eps_downloads_df, eps_downloads_df_unique
 
 def getKeyWords(current_datetime):
     eps_df, last_collected_datetime = identifyExistingCollection(current_datetime, 'episodes_core')
@@ -568,7 +570,7 @@ def getGeoLocationsUSCities(current_datetime):
  
 
     if default_date < states_last_collected_datetime:
-        print('Found an old US cities downloads .csv dated to {}. Still have to call for all episodes because API only returns at-present cross-sectional data. We do this to generate the time-series our selves.')
+        print('Found an old US cities downloads .csv dated to {}. Still have to call for all episodes because API only returns at-present cross-sectional data. We do this to generate the time-series our selves.'.format(current_datetime))
 
     eps_to_collect_id_set = all_eps_episode_id_set
 
@@ -693,9 +695,14 @@ def getDeviceClass(current_datetime):
     return devices_df
 
 
-def fileCleanup():
+def fileCleanup(non_root_dir=None):
+
     filename_pattern = r'(.*)-(\d{4}-\d{2}-\d{2})\.csv'
-    dirlist = os.listdir()
+    if non_root_dir is not None:
+        dirlist = os.listdir(non_root_dir)
+    else:
+        dirlist = os.listdir()
+
     dirdict = {
         'episodes_completion' : [],
         'episodes_core' : [],
@@ -712,11 +719,13 @@ def fileCleanup():
         'is_isnt_completion_rates' : [],
     }
 
+    print(dirlist)
 
     for i, filename in enumerate(dirlist):
         search_obj = re.search(filename_pattern, filename)
         if search_obj:
             dirlist_index = i
+            # print(search_obj)
             csv_type = search_obj[1]
             csv_date = search_obj[2]
 
@@ -727,8 +736,8 @@ def fileCleanup():
     for key in dirdict.keys():
         type_files_listed = dirdict.get(key)
         print(key)
-        while len(type_files_listed) >1:
-        
+        while len(type_files_listed) > 1:
+            
             print(type_files_listed)
             oldest_date = min([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed])
             oldest_date_tuple_index = [index for index, date in enumerate(type_files_listed) if date[1] == datetime.strftime(oldest_date, date_format)][0]
@@ -736,6 +745,9 @@ def fileCleanup():
             print(position_in_directory)
             # print(max([datetime.strptime(tuple[1], date_format) for tuple in type_files_listed]))
             file_to_remove_path = dirlist[position_in_directory]
+            if non_root_dir is not None:
+                remote_dir_prepend_path_prepend = non_root_dir
+                file_to_remove_path = remote_dir_prepend_path_prepend + '/' + file_to_remove_path
             os.remove(file_to_remove_path)
             print('\t GOING TO REMOVE: {}'.format((position_in_directory, datetime.strftime(oldest_date, date_format))))
             type_files_listed.remove((position_in_directory, datetime.strftime(oldest_date, date_format)))
@@ -744,14 +756,64 @@ def fileCleanup():
     return dirdict
 
 
+def moveFiles():
+    filename_pattern = r'(.*)-(\d{4}-\d{2}-\d{2})\.csv'
+    local_dirlist = os.listdir()
+    local_dirdict = {
+        'episodes_completion' : [],
+        'episodes_core' : [],
+        'episodes_downloads' : [],
+        'episodes_keywords' : [],
+        'episodes_listening_methods' : [],
+        'episodes_locations' : [],
+        # 'us_states_episode_locations' : [],
+        # 'us_states_podcast_locations' : [],
+        'us_cities_episode_locations' : [],
+        'podcast_device_class' : [],
+        'podcast_listening_methods' : [],
+        'podcast_locations' : [],
+        'is_isnt_completion_rates' : [],
+    }
+
+    for i, filename in enumerate(local_dirlist):
+        search_obj = re.search(filename_pattern, filename)
+        if search_obj:
+            csv_type = search_obj[1]
+            csv_date = search_obj[2]
+            local_dirdict[csv_type].append((i, filename))
+
+    dst_path_prepend = dropbox_path
+
+    for csv_type in local_dirdict.keys():
+        print(csv_type)
+
+        src_file = local_dirdict.get(csv_type)[0][1]
+        dst_path = dst_path_prepend + '/' + src_file
+        shutil.copyfile(src_file, dst_path)
+
+    fileCleanup(dst_path_prepend)
 
 
+
+print('STARTING MAIN')
 getEpDownloads(today)
+print('PRINTING after getEpDownloads()')
 getKeyWords(today)
+print('PRINTING after getKeyWords()')
 getListeningMethods(today)
+print('PRINTING after getListeningMethods()')
 getGeoLocations(today)
+print('PRINTING after getGeoLocations()')
 getEpCompletionRate(today)
+print('PRINTING after getEpCompletionRate()')
 getDeviceClass(today)
-getGeoLocationsUSA(today)
-# getGeoLocationsUSCities(today)
-# fileCleanup()
+print('PRINTING after getDeviceClass()')
+# # getGeoLocationsUSA(today)
+getGeoLocationsUSCities(today)
+print('PRINTING after getGeoLocationsUSCities()')
+fileCleanup()
+print('PRINTING after fileCleanup()')
+moveFiles()
+print('PRINTING after moveFiles()')
+
+

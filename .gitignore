@@ -1,5 +1,5 @@
 ### VERY IMPORTANT ###
-### MUST IGNORE API KEYS  AND TOKENS###
+### MUST IGNORE API KEYS AND TOKENS###
 env_keys.json
 .Renviron
 .httr-oauth
@@ -7,5 +7,19 @@ capitalisntDashboardApp/drop_token_rds_decrypt.rds
 
 localDevTools.R
 
+
+### Ignore utilities
+.Rproj.user
+renv/
+
+
+### Ignore all .tex auxiliary files
+**/*.synctex.gz
+
 ### Ignore all .csv files for the time being
 **/*.csv
+### Ignore all .otf files because we don't want to push fonts
+**/*.otf
+
+### Ignore all of the logs that are generated when apiCollect.py is run
+logs/

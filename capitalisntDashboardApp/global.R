@@ -8,13 +8,49 @@ library(echarts4r)
 library(reactable)
 library(countrycode)
 library(rdrop2)
-library(cyphr)
-library(sodium)
 library(markdown)
 library(sparkline)
 
-
+print(list.files())
 `%notin%` <- Negate(`%in%`)
+
+##### OPTION for ways to run
+runMethods <- function(type) {
+    if (type == "local") {
+        local_files <<- list.files(
+            path = "../",
+            pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
+        )
+        path_prepend <<- "../"
+    } else if (type == "terminal") {
+        local_files <<- list.files(
+            pattern = "(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv"
+        )
+        path_prepend <<- ""
+    } else if (type == "docker") {
+        drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
+        path_prepend <- ""
+        dropbox_files <<- drop_dir(
+            "capitalisntDashboardData",
+            dtoken = drop_token
+        ) %>%
+            select(path_lower) %>%
+            pull()
+        
+        print(dropbox_files)
+
+        for (dfile in dropbox_files) {
+            drop_download(
+                dfile,
+                overwrite = TRUE,
+                dtoken = drop_token
+            )
+        }
+        local_files <<- list.files()
+    }
+}
+runMethods("local")
+local_files
 
 ##### For running Shiny app locally (runApp())
 # local_files <- list.files(path='../', pattern='(.*)-\\d{4}\\-\\d{2}\\-\\d{2}\\.csv')
@@ -26,24 +62,25 @@ library(sparkline)
 
 
 ##### For running with the dropbox data
-drop_token <- readRDS("drop_token_rds_decrypt.rds")
-# path_prepend <- "capitalisntDashboardData/"
-path_prepend <- ''
-dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
-    select(path_lower) %>%
-    pull()
-print(dropbox_files)
+### For deploying from local
+# drop_token <- readRDS("drop_token_rds_decrypt.rds")
+### For deploying through docker
+# drop_token <- readRDS("drop_token_rds_DECRYPTED.rds")
+# path_prepend <- ''
+# dropbox_files <- drop_dir("capitalisntDashboardData", dtoken = drop_token) %>%
+#     select(path_lower) %>%
+#     pull()
+# print(dropbox_files)
 
 
-for (dfile in dropbox_files) {
-    drop_download(
-        dfile,
-        overwrite = TRUE,
-        dtoken = drop_token
-    )
-}
-print(list.files())
-local_files <- list.files()
+# for (dfile in dropbox_files) {
+#     drop_download(
+#         dfile,
+#         overwrite = TRUE,
+#         dtoken = drop_token
+#     )
+# }
+# local_files <- list.files()
 
 
 
@@ -68,6 +105,8 @@ for (file in local_files) {
         print(paste("episode_locations path is: ", episode_locations))
     } else if (str_detect(file, "is_isnt_completion_rates")) {
         is_isnt_path <- file
+    } else if (str_detect(file, "episodes_keywords")) {
+        episodes_keywords <- file
     }
 }
 
@@ -133,6 +172,19 @@ default_selection <- downloads_data %>%
         slice_max(release_date, n=5) %>%
         select(title) %>%
         pull()
+
+keywords_data <- read_csv(paste0(path_prepend, episodes_keywords, sep = "")) %>%
+    left_join(
+        episode_title_id,
+        by = "episode_id"
+    ) %>%
+    rename(
+        "keyword" = "value"
+    ) %>%
+    select(
+        episode_id,
+        keyword
+    )
 
 ################################################
 #### PLATFORMS TAB ##### DATA ####

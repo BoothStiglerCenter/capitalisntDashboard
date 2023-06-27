@@ -1,0 +1,41 @@
+\begin{table}
+\caption{Baseline models}\label{regrlabl}
+ \begin{tabular}{@{}l*{4}{S[
+                         input-symbols = ( ),   
+                         group-digits = false,   
+                         table-number-alignment = center,   
+                         %table-space-text-pre = (, 
+                         table-align-text-pre = false,
+                         table-align-text-post = false,
+                         table-space-text-post = {***},   
+                         parse-units = false]}@{}}
+\hline
+  &\multicolumn{1}{c}{Baseline  } &\multicolumn{1}{c}{Trimmed  } &\multicolumn{1}{c}{Ads  } &\multicolumn{1}{c}{Book Promo  }\tabularnewline
+ \hline
+ \hline
+ Trailing Avg. & 0.978*** & 0.957*** & 1.007*** & 0.957*** \tabularnewline
+ &(   0.115)&(   0.127)&(     0.116)&(   0.129)\tabularnewline
+ Twitter Followers & 0.000 & 0.000 & 0.000 & 0.000 \tabularnewline
+ &(   0.001)&(   0.001)&(     0.001)&(   0.001)\tabularnewline
+ LinkedIn Followers & 0.003** & 0.003** & -0.155 & 0.003** \tabularnewline
+ &(   0.001)&(   0.001)&(     0.112)&(   0.001)\tabularnewline
+ General Ad (d) &\multicolumn{1}{c}{\_ }&\multicolumn{1}{c}{\_ }& 967.938 &\multicolumn{1}{c}{\_ }\tabularnewline
+ & &&(   694.530) &\tabularnewline
+ Specific Ad (d) &\multicolumn{1}{c}{\_ }&\multicolumn{1}{c}{\_ }& 190208.080 &\multicolumn{1}{c}{\_ }\tabularnewline
+ & &&(134670.612) &\tabularnewline
+ Book Promo (d) &\multicolumn{1}{c}{\_ }&\multicolumn{1}{c}{\_ }&\multicolumn{1}{c}{\_ }& 210.517 \tabularnewline
+ & & &&( 540.418)\tabularnewline
+ (Intercept) & 691.356 & 935.142 & 415.380 & 869.804 \tabularnewline
+&(1153.949)&(1290.759)&(  1164.710)&(1257.058)\tabularnewline
+ \hline
+ RMSE&993.601 &1009.475 &980.852 &1007.954\tabularnewline
+ $R^2$&0.790 &0.782 &0.809 &0.791\tabularnewline
+ Adj. $R^2$&0.769 &0.756 &0.775 &0.762\tabularnewline
+ N&\multicolumn{1}{c}{34}&\multicolumn{1}{c}{30}&\multicolumn{1}{c}{34}&\multicolumn{1}{c}{34} \tabularnewline
+ \hline
+\hline
+ 
+ \multicolumn{5}{c}{  ${*  p}\le 0.05$ ${*\!\!*  p}\le 0.01$ ${*\!\!*\!\!*  p}\le 0.001$}\tabularnewline
+ \end{tabular}
+ \end{table}
+
